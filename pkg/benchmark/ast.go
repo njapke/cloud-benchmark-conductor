@@ -15,36 +15,36 @@ type Function struct {
 	PackageName string
 }
 
-type Visitor struct {
+type astVisitor struct {
 	CurrentDirectory string
 	CurrentPackage   string
 	foundBenchmarks  []Function
 }
 
-func (v *Visitor) Visit(node ast.Node) (w ast.Visitor) {
+func (a *astVisitor) Visit(node ast.Node) (w ast.Visitor) {
 	switch node := node.(type) {
 	case *ast.FuncDecl:
 		fnName := node.Name.Name
 		if !strings.HasPrefix(fnName, "Benchmark") {
 			return nil
 		}
-		v.foundBenchmarks = append(v.foundBenchmarks, Function{
+		a.foundBenchmarks = append(a.foundBenchmarks, Function{
 			Name:        fnName,
-			Directory:   v.CurrentDirectory,
-			PackageName: v.CurrentPackage,
+			Directory:   a.CurrentDirectory,
+			PackageName: a.CurrentPackage,
 		})
 		return nil
 	}
-	return v
+	return a
 }
 
-func onlyTestFiles(info fs.FileInfo) bool {
+func filterOnlyTestFiles(info fs.FileInfo) bool {
 	return strings.HasSuffix(info.Name(), "_test.go")
 }
 
-func findBenchmarksInDir(bv *Visitor) error {
+func findBenchmarksInDir(bv *astVisitor) error {
 	fileSet := token.NewFileSet()
-	pkg, err := parser.ParseDir(fileSet, bv.CurrentDirectory, onlyTestFiles, parser.AllErrors)
+	pkg, err := parser.ParseDir(fileSet, bv.CurrentDirectory, filterOnlyTestFiles, parser.AllErrors)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func findBenchmarksInDir(bv *Visitor) error {
 }
 
 func GetFunctions(rootPath string) ([]Function, error) {
-	bv := &Visitor{
+	bv := &astVisitor{
 		foundBenchmarks: make([]Function, 0),
 	}
 	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {

@@ -1,62 +1,67 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
+	"master-thesis/pkg/benchmark"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-type ctxKeySourcePath int
-
-const SourcePathKey ctxKeySourcePath = 0
+var rootCmd = &cobra.Command{
+	Use:   "microbenchmark-runner",
+	Short: "microbenchmark runner tool",
+	Run:   wrapRunE(rootRun),
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
+}
 
 func main() {
-	cmd := &cobra.Command{
-		Use:     "microbenchmark-runner",
-		Short:   "microbenchmark runner tool",
-		PreRunE: preRun,
-		Run:     wrapRun(rootRun),
-		CompletionOptions: cobra.CompletionOptions{
-			DisableDefaultCmd: true,
-		},
-	}
+	rootCmd.Flags().StringP("input-file", "i", "", "input file")
+	rootCmd.Flags().StringP("source-path", "s", "", "source path")
+	rootCmd.MarkFlagsMutuallyExclusive("source-path", "input-file")
 
-	cmd.PersistentFlags().StringP("source-path", "s", "", "source path")
-	cmd.PersistentFlags().SortFlags = true
+	rootCmd.Flags().SortFlags = true
 
-	cmd.AddCommand(listCmd())
-
-	if err := cmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func rootRun(cmd *cobra.Command, args []string) error {
-	sourcePath := cmd.Context().Value(SourcePathKey)
-	log.Printf("using %s as source path", sourcePath)
+	inputFile, _ := cmd.Flags().GetString("input-file")
+	sourcePath, _ := cmd.Flags().GetString("source-path")
+	if inputFile == "" && sourcePath == "" {
+		return fmt.Errorf("either --input-file or --source-path must be set")
+	}
+	if inputFile != "" {
+		log.Printf("loading %s", inputFile)
+		return nil
+	}
 
-	return fmt.Errorf("not implemented")
-}
-
-func preRun(cmd *cobra.Command, args []string) error {
-	sourcePath, err := cmd.Flags().GetString("source-path")
+	functions, err := benchmark.GetFunctions(sourcePath)
 	if err != nil {
 		return err
 	}
-	if sourcePath == "" {
-		return fmt.Errorf("source path not configured")
+
+	for _, function := range functions {
+		log.Printf("running %s (%s)", function.Name, function.Directory)
+		res, err := benchmark.RunFunction(function)
+		if err != nil {
+			return err
+		}
+		log.Printf("%#v", res)
 	}
-	cmd.SetContext(context.WithValue(cmd.Context(), SourcePathKey, sourcePath))
+	fmt.Println("done")
 	return nil
 }
 
-func wrapRun(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
+func wrapRunE(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
 		if err := fn(cmd, args); err != nil {
-			log.Fatal(err)
+			log.Fatalf("ERROR: %v", err)
 		}
 	}
 }
