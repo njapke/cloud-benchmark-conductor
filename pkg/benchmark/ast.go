@@ -1,6 +1,7 @@
 package benchmark
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -75,4 +76,37 @@ func GetFunctions(rootPath string) ([]Function, error) {
 		return nil, err
 	}
 	return bv.foundBenchmarks, nil
+}
+
+type VersionedFunction struct {
+	V1, V2 Function
+}
+
+func (receiver VersionedFunction) String() string {
+	// the PackageName and Name are identical for both versions
+	return fmt.Sprintf("%s.%s", receiver.V1.PackageName, receiver.V1.Name)
+}
+
+func findFunction(fns []Function, search Function) (Function, bool) {
+	for _, f := range fns {
+		if f.PackageName == search.PackageName && f.Name == search.Name {
+			return f, true
+		}
+	}
+	return Function{}, false
+}
+
+func CombineFunctions(v1, v2 []Function) []VersionedFunction {
+	result := make([]VersionedFunction, 0)
+	for _, functionV1 := range v1 {
+		functionV2, ok := findFunction(v2, functionV1)
+		if !ok {
+			continue
+		}
+		result = append(result, VersionedFunction{
+			V1: functionV1,
+			V2: functionV2,
+		})
+	}
+	return result
 }

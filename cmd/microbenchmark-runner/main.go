@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"log"
 	"master-thesis/pkg/benchmark"
@@ -20,8 +22,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	rootCmd.Flags().StringP("input-file", "i", "", "input file")
-	rootCmd.Flags().StringP("source-path", "s", "", "source path")
-	rootCmd.MarkFlagsMutuallyExclusive("source-path", "input-file")
+	_ = rootCmd.MarkFlagRequired("input-file")
 
 	rootCmd.Flags().SortFlags = true
 
@@ -30,42 +31,61 @@ func main() {
 	}
 }
 
+func readInput(filenname string) ([]benchmark.VersionedFunction, error) {
+	f, err := os.Open(filenname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var functions []benchmark.VersionedFunction
+	err = json.NewDecoder(f).Decode(&functions)
+	if err != nil {
+		return nil, err
+	}
+	return functions, nil
+}
+
+func randomBool() bool {
+	b := [1]byte{}
+	_, _ = rand.Read(b[:])
+	return b[0] > 127
+}
+
+func v1OrV2(b bool) string {
+	if b {
+		return "v1"
+	}
+	return "v2"
+}
+
 func rootRun(cmd *cobra.Command, args []string) error {
 	inputFile, _ := cmd.Flags().GetString("input-file")
-	sourcePath, _ := cmd.Flags().GetString("source-path")
-	if inputFile == "" && sourcePath == "" {
-		return fmt.Errorf("either --input-file or --source-path must be set")
-	}
-	if inputFile != "" {
-		log.Printf("loading %s", inputFile)
-		return nil
-	}
 
-	functions, err := benchmark.GetFunctions(sourcePath)
+	functions, err := readInput(inputFile)
 	if err != nil {
 		return err
 	}
 
-	v1Results := make([]*benchmark.Result, 0)
-	v2Results := make([]*benchmark.Result, 0)
+	resultsV1 := make([]benchmark.Result, 0)
+	resultsV2 := make([]benchmark.Result, 0)
 
-	for _, function := range functions {
-		log.Printf("running[v1] %s (%s)", function.Name, function.Directory)
-		res, err := benchmark.RunFunction(function)
+	for s := 1; s <= 3; s++ {
+		log.Printf("suite run: %d\n", s)
+		rV1, rV2, err := benchmark.RunSuite(functions, s)
 		if err != nil {
 			return err
 		}
-		v1Results = append(v1Results, res)
-
-		log.Printf("running[v2] %s (%s)", function.Name, function.Directory)
-		res, err = benchmark.RunFunction(function)
-		if err != nil {
-			return err
-		}
-		v2Results = append(v2Results, res)
+		resultsV1 = append(resultsV1, rV1...)
+		resultsV2 = append(resultsV2, rV2...)
 	}
-	fmt.Println(v1Results)
-	fmt.Println(v2Results)
+
+	for _, r := range resultsV1 {
+		fmt.Printf("%#v\n", r)
+	}
+	fmt.Println("-----------------------------------------------------")
+	for _, r := range resultsV2 {
+		fmt.Printf("%#v\n", r)
+	}
 	fmt.Println("done")
 	return nil
 }
