@@ -55,3 +55,11 @@ func BenchmarkValidateOrderNumber(b *testing.B) {
 		_ = ValidateOrderNumber("122-321-111-563")
 	}
 }
+
+func BenchmarkParseUint(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = strconv.ParseUint("999", 10, 32)
+	}
+}

@@ -58,3 +58,30 @@ func BenchmarkValidateOrderNumber(b *testing.B) {
 		_ = ValidateOrderNumber2("122-321-111-563")
 	}
 }
+
+func parseUint(s string) int {
+	ret := 0
+	pos := 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] > '9' || s[i] < '0' {
+			return -1
+		}
+		ret += int(s[i]-'0') * pos
+		pos *= 10
+	}
+	return ret
+}
+
+func TestParseUint(t *testing.T) {
+	if parseUint("999") != 999 {
+		t.Fatal("parseUint failed")
+	}
+}
+
+func BenchmarkParseUint(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = parseUint("999")
+	}
+}
