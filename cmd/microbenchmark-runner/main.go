@@ -46,14 +46,26 @@ func rootRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	v1Results := make([]*benchmark.Result, 0)
+	v2Results := make([]*benchmark.Result, 0)
+
 	for _, function := range functions {
-		log.Printf("running %s (%s)", function.Name, function.Directory)
+		log.Printf("running[v1] %s (%s)", function.Name, function.Directory)
 		res, err := benchmark.RunFunction(function)
 		if err != nil {
 			return err
 		}
-		log.Printf("%#v", res)
+		v1Results = append(v1Results, res)
+
+		log.Printf("running[v2] %s (%s)", function.Name, function.Directory)
+		res, err = benchmark.RunFunction(function)
+		if err != nil {
+			return err
+		}
+		v2Results = append(v2Results, res)
 	}
+	fmt.Println(v1Results)
+	fmt.Println(v2Results)
 	fmt.Println("done")
 	return nil
 }
