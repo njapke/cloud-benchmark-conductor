@@ -1,9 +1,8 @@
 package main
 
 import (
-	"crypto/rand"
+	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"log"
 	"master-thesis/pkg/benchmark"
 	"os"
@@ -23,6 +22,8 @@ var rootCmd = &cobra.Command{
 func main() {
 	rootCmd.Flags().StringP("input-file", "i", "", "input file")
 	_ = rootCmd.MarkFlagRequired("input-file")
+	rootCmd.Flags().IntP("run", "r", 1, "run index")
+	_ = rootCmd.MarkFlagRequired("run")
 
 	rootCmd.Flags().SortFlags = true
 
@@ -31,8 +32,8 @@ func main() {
 	}
 }
 
-func readInput(filenname string) ([]benchmark.VersionedFunction, error) {
-	f, err := os.Open(filenname)
+func readInput(filename string) ([]benchmark.VersionedFunction, error) {
+	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -45,33 +46,20 @@ func readInput(filenname string) ([]benchmark.VersionedFunction, error) {
 	return functions, nil
 }
 
-func randomBool() bool {
-	b := [1]byte{}
-	_, _ = rand.Read(b[:])
-	return b[0] > 127
-}
-
-func v1OrV2(b bool) string {
-	if b {
-		return "v1"
-	}
-	return "v2"
-}
-
 func rootRun(cmd *cobra.Command, args []string) error {
 	inputFile, _ := cmd.Flags().GetString("input-file")
+	runIndex, _ := cmd.Flags().GetInt("run")
 
 	functions, err := readInput(inputFile)
 	if err != nil {
 		return err
 	}
 
-	resultsV1 := make([]benchmark.Result, 0)
-	resultsV2 := make([]benchmark.Result, 0)
-
+	resultsV1 := make(benchmark.Results, 0)
+	resultsV2 := make(benchmark.Results, 0)
 	for s := 1; s <= 3; s++ {
 		log.Printf("suite run: %d\n", s)
-		rV1, rV2, err := benchmark.RunSuite(functions, s)
+		rV1, rV2, err := benchmark.RunSuite(functions, runIndex, s)
 		if err != nil {
 			return err
 		}
@@ -79,14 +67,13 @@ func rootRun(cmd *cobra.Command, args []string) error {
 		resultsV2 = append(resultsV2, rV2...)
 	}
 
-	for _, r := range resultsV1 {
-		fmt.Printf("%#v\n", r)
+	w := csv.NewWriter(os.Stdout)
+	_ = w.WriteAll(resultsV1.Records())
+	_ = w.WriteAll(resultsV2.Records())
+	if err := w.Error(); err != nil {
+		return err
 	}
-	fmt.Println("-----------------------------------------------------")
-	for _, r := range resultsV2 {
-		fmt.Printf("%#v\n", r)
-	}
-	fmt.Println("done")
+	log.Println("done")
 	return nil
 }
 
