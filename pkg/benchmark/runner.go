@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"golang.org/x/perf/benchfmt"
@@ -38,9 +39,9 @@ func (r Result) Record() []string {
 		r.RSI(),
 		fmt.Sprintf("%s.%s", r.Function.PackageName, r.Function.Name),
 		r.Function.Directory,
-		fmt.Sprintf("%f", r.Ops),
-		fmt.Sprintf("%f", r.Bytes),
-		fmt.Sprintf("%f", r.Allocs),
+		strconv.FormatFloat(r.Ops, 'f', -1, 64),
+		strconv.FormatFloat(r.Bytes, 'f', -1, 64),
+		strconv.FormatFloat(r.Allocs, 'f', -1, 64),
 	}
 }
 
