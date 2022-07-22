@@ -62,7 +62,11 @@ func GetFunctions(rootPath string) ([]Function, error) {
 	bv := &astVisitor{
 		foundBenchmarks: make([]Function, 0),
 	}
-	err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
+	absRootPath, err := filepath.Abs(rootPath)
+	if err != nil {
+		return nil, err
+	}
+	err = filepath.WalkDir(absRootPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

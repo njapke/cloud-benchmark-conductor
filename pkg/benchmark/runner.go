@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -104,7 +105,7 @@ func RunFunction(csvWriter *csv.Writer, f Function, version, run, suite int) err
 	cmd := exec.Command("go", args...)
 	pipeRead, pipeWrite := io.Pipe()
 	cmd.Stdout = pipeWrite
-	cmd.Stderr = pipeWrite
+	cmd.Stderr = os.Stderr
 
 	errCh := make(chan error, 1)
 	go func() {
