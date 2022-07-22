@@ -20,6 +20,17 @@ const ExecutionCount = 5
 var timeoutArg = fmt.Sprintf("-timeout=%ds", Timeout)
 var countArg = fmt.Sprintf("-count=%d", ExecutionCount)
 
+var workingDirectory string
+
+func init() {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	workingDirectory = wd
+	rand.Seed(time.Now().Unix())
+}
+
 type Result struct {
 	Function   Function
 	Iterations int
@@ -69,7 +80,7 @@ func (r Result) Record() []string {
 		r.RSI(),
 		fmt.Sprintf("%s.%s", r.Function.PackageName, r.Function.Name),
 		strconv.FormatInt(int64(r.Version), 10),
-		r.Function.Directory,
+		r.Function.RelativeDirectory(workingDirectory),
 		strconv.FormatInt(int64(r.Iterations), 10),
 		strconv.FormatFloat(r.Ops, 'f', -1, 32),
 		strconv.FormatFloat(r.Bytes, 'f', -1, 32),
@@ -85,10 +96,6 @@ func (r Results) Records() [][]string {
 		res[i] = result.Record()
 	}
 	return res
-}
-
-func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func RunFunction(csvWriter *csv.Writer, f Function, version, run, suite int) error {

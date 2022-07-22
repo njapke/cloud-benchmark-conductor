@@ -16,6 +16,15 @@ type Function struct {
 	PackageName string
 }
 
+func (f Function) String() string {
+	return fmt.Sprintf("%s.%s", f.PackageName, f.Name)
+}
+
+func (f Function) RelativeDirectory(wd string) string {
+	relativeDirectory, _ := filepath.Rel(wd, f.Directory)
+	return relativeDirectory
+}
+
 type astVisitor struct {
 	CurrentDirectory string
 	CurrentPackage   string
@@ -86,9 +95,9 @@ type VersionedFunction struct {
 	V1, V2 Function
 }
 
-func (receiver VersionedFunction) String() string {
+func (vf VersionedFunction) String() string {
 	// the PackageName and Name are identical for both versions
-	return fmt.Sprintf("%s.%s", receiver.V1.PackageName, receiver.V1.Name)
+	return vf.V1.String()
 }
 
 func findFunction(fns []Function, search Function) (Function, bool) {
