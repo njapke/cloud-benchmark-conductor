@@ -1,4 +1,4 @@
-module master-thesis
+module github.com/christophwitzko/master-thesis
 
 go 1.18
 

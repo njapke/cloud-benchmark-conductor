@@ -4,9 +4,9 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"log"
-	"master-thesis/pkg/benchmark"
 	"os"
 
+	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +24,10 @@ func main() {
 	_ = rootCmd.MarkFlagRequired("input-file")
 	rootCmd.Flags().IntP("run", "r", 1, "run index")
 	_ = rootCmd.MarkFlagRequired("run")
+
+	rootCmd.Flags().Bool("csv-header", false, "add csv header")
+	rootCmd.Flags().Int("suite-runs", 3, "suite runs")
+	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
 
 	rootCmd.Flags().SortFlags = true
 
@@ -49,28 +53,45 @@ func readInput(filename string) ([]benchmark.VersionedFunction, error) {
 func rootRun(cmd *cobra.Command, args []string) error {
 	inputFile, _ := cmd.Flags().GetString("input-file")
 	runIndex, _ := cmd.Flags().GetInt("run")
+	csvHeader, _ := cmd.Flags().GetBool("csv-header")
+	suiteRuns, _ := cmd.Flags().GetInt("suite-runs")
+	outputFile, _ := cmd.Flags().GetString("output")
 
 	functions, err := readInput(inputFile)
 	if err != nil {
 		return err
 	}
 
-	resultsV1 := make(benchmark.Results, 0)
-	resultsV2 := make(benchmark.Results, 0)
-	for s := 1; s <= 3; s++ {
-		log.Printf("suite run: %d\n", s)
-		rV1, rV2, err := benchmark.RunSuite(functions, runIndex, s)
+	var csvWriter *csv.Writer
+	if outputFile == "-" {
+		csvWriter = csv.NewWriter(os.Stdout)
+	} else {
+		log.Printf("writing output to %s", outputFile)
+		outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		resultsV1 = append(resultsV1, rV1...)
-		resultsV2 = append(resultsV2, rV2...)
+		csvWriter = csv.NewWriter(outFile)
 	}
 
-	w := csv.NewWriter(os.Stdout)
-	_ = w.WriteAll(resultsV1.Records())
-	_ = w.WriteAll(resultsV2.Records())
-	if err := w.Error(); err != nil {
+	if csvHeader {
+		if err := csvWriter.Write(benchmark.CSVOutputHeader); err != nil {
+			return err
+		}
+		csvWriter.Flush()
+	}
+
+	log.Printf("run index: %d\n", runIndex)
+
+	for s := 1; s <= suiteRuns; s++ {
+		log.Printf("suite run: %d/%d\n", s, suiteRuns)
+		err := benchmark.RunSuite(csvWriter, functions, runIndex, s)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := csvWriter.Error(); err != nil {
 		return err
 	}
 	log.Println("done")

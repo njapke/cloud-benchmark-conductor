@@ -5,8 +5,7 @@ import (
 	"log"
 	"os"
 
-	"master-thesis/pkg/benchmark"
-
+	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/spf13/cobra"
 )
 
