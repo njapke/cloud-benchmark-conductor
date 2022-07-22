@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 )
 
 func split(input string, c byte) []string {
@@ -31,73 +28,11 @@ func main() {
 	}
 }
 
-func onlyTestFiles(info fs.FileInfo) bool {
-	return strings.HasSuffix(info.Name(), "_test.go")
-}
-
 func run() error {
-	bv := &benchmarkVisitor{
-		foundBenchmarks: make([]benchmarkFunction, 0),
-	}
-	err := filepath.WalkDir("./research", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			return nil
-		}
-		bv.CurrentDirectory = path
-		fmt.Println("walking", path)
-		return findBenchmarksInDir(bv)
-	})
+	fns, err := benchmark.GetFunctions("./research")
 	if err != nil {
 		return err
 	}
-	fmt.Println(bv.foundBenchmarks)
+	fmt.Println(fns)
 	return nil
-}
-
-func findBenchmarksInDir(bv *benchmarkVisitor) error {
-	fileSet := token.NewFileSet()
-
-	pkg, err := parser.ParseDir(fileSet, bv.CurrentDirectory, onlyTestFiles, parser.AllErrors)
-	if err != nil {
-		return err
-	}
-	for pkgName, astPkg := range pkg {
-		bv.CurrentPackage = pkgName
-		for _, astFile := range astPkg.Files {
-			ast.Walk(bv, astFile)
-		}
-	}
-	return nil
-}
-
-type benchmarkFunction struct {
-	Name        string
-	Directory   string
-	PackageName string
-}
-
-type benchmarkVisitor struct {
-	CurrentDirectory string
-	CurrentPackage   string
-	foundBenchmarks  []benchmarkFunction
-}
-
-func (b *benchmarkVisitor) Visit(node ast.Node) (w ast.Visitor) {
-	switch node := node.(type) {
-	case *ast.FuncDecl:
-		fnName := node.Name.Name
-		if !strings.HasPrefix(fnName, "Benchmark") {
-			return nil
-		}
-		b.foundBenchmarks = append(b.foundBenchmarks, benchmarkFunction{
-			Name:        fnName,
-			Directory:   b.CurrentDirectory,
-			PackageName: b.CurrentPackage,
-		})
-		return nil
-	}
-	return b
 }
