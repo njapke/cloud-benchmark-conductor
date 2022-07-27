@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -29,16 +28,22 @@ func mbRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancelCtx := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelCtx()
 
-	//instance, err := service.CreateInstance(ctx, "test-1")
-	//if err != nil {
-	//	return err
-	//}
-	//log.Println(instance.Name(), instance.ExternalIP())
-	//return service.DeleteInstances(ctx)
-	log.Println(service.EnsureFirewallRules(ctx))
-	log.Println(service.Cleanup(ctx))
+	ctx := context.Background()
+
+	log.Println("setting up firewall rules")
+	if err := service.EnsureFirewallRules(ctx); err != nil {
+		return err
+	}
+	log.Println("setting up instance")
+	instance, err := service.CreateInstance(ctx, "test")
+	if err != nil {
+		return err
+	}
+	log.Printf("[%s]: instance up (%s)\n", instance.Name(), instance.ExternalIP())
+	if err := instance.WaitForSSHPortReady(ctx); err != nil {
+		return err
+	}
+	log.Println("instance ready")
 	return nil
 }

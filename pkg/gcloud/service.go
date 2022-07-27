@@ -128,7 +128,7 @@ func (s *Service) waitForOp(ctx context.Context, initialOp *compute.Operation) e
 }
 
 func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, error) {
-	instance, err := s.computeService.Instances.Get(s.config.Project, s.config.Zone, name).Context(ctx).Do()
+	instance, err := s.computeService.Instances.Get(s.config.Project, s.config.Zone, prefixName(name)).Context(ctx).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -137,20 +137,20 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 	}, nil
 }
 
-func (s *Service) CreateInstance(ctx context.Context, instanceName string) (*Instance, error) {
+func (s *Service) CreateInstance(ctx context.Context, name string) (*Instance, error) {
 	latestUbuntu, err := s.getLatestUbuntuImage(ctx)
 	if err != nil {
 		return nil, err
 	}
 	machineType := fmt.Sprintf("zones/%s/machineTypes/%s", s.config.Zone, s.config.InstanceType)
 	diskType := fmt.Sprintf("zones/%s/diskTypes/pd-balanced", s.config.Zone)
-	name := prefixName(instanceName)
+	prefixedInstanceName := prefixName(name)
 	instance := &compute.Instance{
-		Name:        name,
+		Name:        prefixedInstanceName,
 		MachineType: machineType,
 		Disks: []*compute.AttachedDisk{
 			{
-				DeviceName: name,
+				DeviceName: prefixedInstanceName,
 				InitializeParams: &compute.AttachedDiskInitializeParams{
 					DiskSizeGb:  10,
 					SourceImage: latestUbuntu,
@@ -192,7 +192,7 @@ func (s *Service) CreateInstance(ctx context.Context, instanceName string) (*Ins
 	if err := s.waitForOp(ctx, insertOp); err != nil {
 		return nil, err
 	}
-	return s.GetInstance(ctx, instanceName)
+	return s.GetInstance(ctx, name)
 }
 
 func (s *Service) DeleteInstances(ctx context.Context) ([]string, error) {
@@ -208,7 +208,7 @@ func (s *Service) DeleteInstances(ctx context.Context) ([]string, error) {
 			if err != nil {
 				mErr = multierror.Append(mErr, err)
 			} else {
-				deletedInstances = append(deletedInstances, instance.SelfLink)
+				deletedInstances = append(deletedInstances, "instances/"+instance.Name)
 			}
 		}
 	}
@@ -252,7 +252,7 @@ func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
 
 	_, err := s.computeService.Firewalls.Delete(s.config.Project, toolName).Context(ctx).Do()
 	if err == nil {
-		deletedResources = append(deletedResources, fmt.Sprintf("projects/%s/global/firewalls/%s", s.config.Project, toolName))
+		deletedResources = append(deletedResources, "firewalls/"+toolName)
 		return deletedResources, mErr
 	}
 	// ignore 404 errors, as the firewall may not exist
