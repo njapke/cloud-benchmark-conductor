@@ -3,6 +3,7 @@ module github.com/christophwitzko/master-thesis
 go 1.18
 
 require (
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/perf v0.0.0-20220722155240-3d85ee92886d
 	google.golang.org/api v0.89.0
@@ -16,6 +17,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.opencensus.io v0.23.0 // indirect
