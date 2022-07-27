@@ -7,13 +7,14 @@ import (
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "microbenchmark-runner",
 	Short: "microbenchmark runner tool",
-	Run:   wrapRunE(rootRun),
+	Run:   cli.WrapRunE(rootRun),
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
 	},
@@ -96,12 +97,4 @@ func rootRun(cmd *cobra.Command, args []string) error {
 	}
 	log.Println("done")
 	return nil
-}
-
-func wrapRunE(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
-	return func(cmd *cobra.Command, args []string) {
-		if err := fn(cmd, args); err != nil {
-			log.Fatalf("ERROR: %v", err)
-		}
-	}
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ func listCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "list all benchmark functions of the given source path",
-		Run:   wrapRunE(listRun),
+		Run:   cli.WrapRunE(listRun),
 	}
 
 	cmd.Flags().StringP("source-path-v1", "1", "", "source path for version 1")
