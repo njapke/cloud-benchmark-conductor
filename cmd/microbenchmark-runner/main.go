@@ -3,13 +3,15 @@ package main
 import (
 	"encoding/csv"
 	"encoding/json"
-	"log"
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
+
+var log = logger.Default()
 
 var rootCmd = &cobra.Command{
 	Use:   "microbenchmark-runner",

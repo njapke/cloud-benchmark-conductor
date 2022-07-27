@@ -1,10 +1,11 @@
 package cli
 
 import (
-	"log"
-
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
+
+var log = logger.Default()
 
 func WrapRunE(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {

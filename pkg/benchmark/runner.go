@@ -4,15 +4,17 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
 	"time"
 
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"golang.org/x/perf/benchfmt"
 )
+
+var log = logger.Default()
 
 const Timeout = 60
 const ExecutionCount = 5

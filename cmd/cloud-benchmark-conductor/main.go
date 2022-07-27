@@ -1,13 +1,15 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var log = logger.Default()
 
 var rootCmd = &cobra.Command{
 	Use:   "cloud-benchmark-conductor",
