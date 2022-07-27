@@ -11,7 +11,7 @@ import (
 
 var cleanupCmd = &cobra.Command{
 	Use:   "cleanup",
-	Short: "Delete all cloud resources created by the cloud benchmark conductor",
+	Short: "Delete cloud resources created by the cloud benchmark conductor",
 	Run: cli.WrapRunE(func(cmd *cobra.Command, args []string) error {
 		conf, err := config.NewConductorConfig(cmd)
 		if err != nil {
@@ -22,8 +22,16 @@ var cleanupCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		log.Println("cleanup started...")
-		deletedResources, err := service.Cleanup(context.Background())
+		cleanupAll := cli.MustGetBool(cmd, "all")
+		var deletedResources []string
+		if cleanupAll {
+			deletedResources, err = service.Cleanup(context.Background())
+		} else {
+			log.Println("deleting instances only...")
+			deletedResources, err = service.DeleteInstances(context.Background())
+		}
 		if err != nil {
 			return err
 		}
@@ -36,5 +44,6 @@ var cleanupCmd = &cobra.Command{
 }
 
 func init() {
+	cleanupCmd.Flags().Bool("all", false, "delete all resources created by the cloud benchmark conductor")
 	rootCmd.AddCommand(cleanupCmd)
 }

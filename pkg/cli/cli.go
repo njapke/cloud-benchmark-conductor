@@ -26,3 +26,9 @@ func MustGetString(cmd *cobra.Command, name string) string {
 	Must(err)
 	return val
 }
+
+func MustGetBool(cmd *cobra.Command, name string) bool {
+	val, err := cmd.Flags().GetBool(name)
+	Must(err)
+	return val
+}
