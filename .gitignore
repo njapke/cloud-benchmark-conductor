@@ -1,2 +1,4 @@
 .idea/
 analysis/.ipynb_checkpoints/
+google-application-credentials.json
+.envrc
