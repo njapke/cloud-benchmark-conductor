@@ -14,6 +14,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "microbenchmark-runner",
 	Short: "microbenchmark runner tool",
+	Long:  "This tool is used to run microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).",
 	Run:   cli.WrapRunE(rootRun),
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
@@ -37,7 +38,7 @@ func main() {
 	}
 }
 
-func readInput(filename string) ([]benchmark.VersionedFunction, error) {
+func readInputFunctions(filename string) ([]benchmark.VersionedFunction, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func rootRun(cmd *cobra.Command, args []string) error {
 	suiteRuns, _ := cmd.Flags().GetInt("suite-runs")
 	outputFile, _ := cmd.Flags().GetString("output")
 
-	functions, err := readInput(inputFile)
+	functions, err := readInputFunctions(inputFile)
 	if err != nil {
 		return err
 	}

@@ -13,3 +13,15 @@ func WrapRunE(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.
 		}
 	}
 }
+
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func MustGetString(cmd *cobra.Command, name string) string {
+	val, err := cmd.Flags().GetString(name)
+	Must(err)
+	return val
+}

@@ -10,25 +10,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(listCmd())
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all overlapping benchmark functions of the given source paths",
+	Run:   cli.WrapRunE(listRun),
 }
 
-func listCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "list all benchmark functions of the given source path",
-		Run:   cli.WrapRunE(listRun),
-	}
-
-	cmd.Flags().StringP("source-path-v1", "1", "", "source path for version 1")
-	_ = cmd.MarkFlagRequired("source-path-v1")
-	cmd.Flags().StringP("source-path-v2", "2", "", "source path for version 2")
-	_ = cmd.MarkFlagRequired("source-path-v2")
-	cmd.Flags().Bool("json", false, "output in json format")
-	cmd.Flags().SortFlags = true
-
-	return cmd
+func init() {
+	listCmd.Flags().StringP("source-path-v1", "1", "", "source path for version 1")
+	_ = listCmd.MarkFlagRequired("source-path-v1")
+	listCmd.Flags().StringP("source-path-v2", "2", "", "source path for version 2")
+	_ = listCmd.MarkFlagRequired("source-path-v2")
+	listCmd.Flags().Bool("json", false, "output in json format")
+	listCmd.Flags().SortFlags = true
+	rootCmd.AddCommand(listCmd)
 }
 
 func listRun(cmd *cobra.Command, args []string) error {
