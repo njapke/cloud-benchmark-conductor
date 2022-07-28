@@ -14,8 +14,6 @@ import (
 	"golang.org/x/perf/benchfmt"
 )
 
-var log = logger.Default()
-
 const Timeout = 60
 const ExecutionCount = 5
 
@@ -100,7 +98,7 @@ func (r Results) Records() [][]string {
 	return res
 }
 
-func RunFunction(csvWriter *csv.Writer, f Function, version, run, suite int) error {
+func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version, run, suite int) error {
 	args := []string{
 		"test",
 		"-run=^$",
@@ -155,7 +153,7 @@ func RunFunction(csvWriter *csv.Writer, f Function, version, run, suite int) err
 	return nil
 }
 
-func RunVersionedFunction(csvWriter *csv.Writer, vFunction VersionedFunction, run, suite int) error {
+func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction VersionedFunction, run, suite int) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2
 
@@ -165,20 +163,20 @@ func RunVersionedFunction(csvWriter *csv.Writer, vFunction VersionedFunction, ru
 		aVersion, bVersion = 2, 1
 	}
 
-	log.Printf("  |--> running[%d]: %s\n", aVersion, a.Directory)
-	if err := RunFunction(csvWriter, a, aVersion, run, suite); err != nil {
+	log.Printf("  |--> running[%d]: %s", aVersion, a.Directory)
+	if err := RunFunction(log, csvWriter, a, aVersion, run, suite); err != nil {
 		return err
 	}
 
 	log.Printf("  |--> running[%d]: %s", bVersion, b.Directory)
-	if err := RunFunction(csvWriter, b, bVersion, run, suite); err != nil {
+	if err := RunFunction(log, csvWriter, b, bVersion, run, suite); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func RunSuite(csvWriter *csv.Writer, fns []VersionedFunction, run, suite int) error {
+func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns []VersionedFunction, run, suite int) error {
 	newFns := make([]VersionedFunction, len(fns))
 	copy(newFns, fns)
 
@@ -188,8 +186,8 @@ func RunSuite(csvWriter *csv.Writer, fns []VersionedFunction, run, suite int) er
 	})
 
 	for _, function := range newFns {
-		log.Printf("--| benchmarking: %s\n", function.String())
-		err := RunVersionedFunction(csvWriter, function, run, suite)
+		log.Printf("--| benchmarking: %s", function.String())
+		err := RunVersionedFunction(log, csvWriter, function, run, suite)
 		if err != nil {
 			return err
 		}

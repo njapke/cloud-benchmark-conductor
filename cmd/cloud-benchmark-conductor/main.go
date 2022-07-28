@@ -9,30 +9,29 @@ import (
 	"github.com/spf13/viper"
 )
 
-var log = logger.Default()
-
-var rootCmd = &cobra.Command{
-	Use:   "cloud-benchmark-conductor",
-	Short: "cloud benchmark conductor",
-	Long: `The cloud benchmark conductor takes care of running benchmarks in the cloud.
-Therefore compute instances are provisioned and used to execute the benchmarks.`,
-	CompletionOptions: cobra.CompletionOptions{
-		DisableDefaultCmd: true,
-	},
-}
-
 func main() {
+	log := logger.New()
+	rootCmd := &cobra.Command{
+		Use:   "cloud-benchmark-conductor",
+		Short: "cloud benchmark conductor",
+		Long: `The cloud benchmark conductor takes care of running benchmarks in the cloud.
+Therefore compute instances are provisioned and used to execute the benchmarks.`,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
+	}
 	cobra.OnInitialize(func() {
 		if err := config.InitConfig(rootCmd, "cbc.yaml"); err != nil {
-			log.Printf("Config error: %v\n", err)
+			log.Printf("Config error: %v", err)
 			os.Exit(1)
 		}
 		usedConfigFile := viper.ConfigFileUsed()
 		if usedConfigFile != "" {
-			log.Printf("using config: %s\n", usedConfigFile)
+			log.Printf("using config: %s", usedConfigFile)
 		}
 	})
 	config.ConductorSetupFlagsAndViper(rootCmd)
+	rootCmd.AddCommand(configCmd(log), cleanupCmd(log), mbCmd(log))
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

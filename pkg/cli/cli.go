@@ -5,11 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var log = logger.Default()
-
-func WrapRunE(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
+func WrapRunE(log *logger.Logger, fn func(log *logger.Logger, cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
-		if err := fn(cmd, args); err != nil {
+		if err := fn(log, cmd, args); err != nil {
 			log.Fatalf("ERROR: %v", err)
 		}
 	}
@@ -29,6 +27,12 @@ func MustGetString(cmd *cobra.Command, name string) string {
 
 func MustGetBool(cmd *cobra.Command, name string) bool {
 	val, err := cmd.Flags().GetBool(name)
+	Must(err)
+	return val
+}
+
+func MustGetInt(cmd *cobra.Command, name string) int {
+	val, err := cmd.Flags().GetInt(name)
 	Must(err)
 	return val
 }

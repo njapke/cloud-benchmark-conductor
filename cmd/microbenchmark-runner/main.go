@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
@@ -11,57 +10,43 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var log = logger.Default()
-
-var rootCmd = &cobra.Command{
-	Use:   "microbenchmark-runner",
-	Short: "microbenchmark runner tool",
-	Long:  "This tool is used to run microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).",
-	Run:   cli.WrapRunE(rootRun),
-	CompletionOptions: cobra.CompletionOptions{
-		DisableDefaultCmd: true,
-	},
-}
-
 func main() {
-	rootCmd.Flags().StringP("input-file", "i", "", "input file")
-	_ = rootCmd.MarkFlagRequired("input-file")
-	rootCmd.Flags().IntP("run", "r", 1, "run index")
-	_ = rootCmd.MarkFlagRequired("run")
+	log := logger.New()
+	rootCmd := &cobra.Command{
+		Use:   "microbenchmark-runner",
+		Short: "microbenchmark runner tool",
+		Long:  "This tool is used to run microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).",
+		Run:   cli.WrapRunE(log, rootRun),
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
+	}
+	rootCmd.PersistentFlags().StringP("source-path-v1", "1", "", "source path for version 1")
+	_ = rootCmd.MarkPersistentFlagRequired("source-path-v1")
+	rootCmd.PersistentFlags().StringP("source-path-v2", "2", "", "source path for version 2")
+	_ = rootCmd.MarkPersistentFlagRequired("source-path-v2")
 
+	rootCmd.AddCommand(listCmd(log))
+
+	rootCmd.Flags().IntP("run", "r", 1, "run index")
 	rootCmd.Flags().Bool("csv-header", false, "add csv header")
 	rootCmd.Flags().Int("suite-runs", 3, "suite runs")
 	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
-
-	rootCmd.Flags().SortFlags = true
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func readInputFunctions(filename string) ([]benchmark.VersionedFunction, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var functions []benchmark.VersionedFunction
-	err = json.NewDecoder(f).Decode(&functions)
-	if err != nil {
-		return nil, err
-	}
-	return functions, nil
-}
+func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
+	sourcePathV1 := cli.MustGetString(cmd, "source-path-v1")
+	sourcePathV2 := cli.MustGetString(cmd, "source-path-v2")
+	runIndex := cli.MustGetInt(cmd, "run")
+	csvHeader := cli.MustGetBool(cmd, "csv-header")
+	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
+	outputFile := cli.MustGetString(cmd, "output")
 
-func rootRun(cmd *cobra.Command, args []string) error {
-	inputFile, _ := cmd.Flags().GetString("input-file")
-	runIndex, _ := cmd.Flags().GetInt("run")
-	csvHeader, _ := cmd.Flags().GetBool("csv-header")
-	suiteRuns, _ := cmd.Flags().GetInt("suite-runs")
-	outputFile, _ := cmd.Flags().GetString("output")
-
-	functions, err := readInputFunctions(inputFile)
+	functions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
 		return err
 	}
@@ -85,11 +70,11 @@ func rootRun(cmd *cobra.Command, args []string) error {
 		csvWriter.Flush()
 	}
 
-	log.Printf("run index: %d\n", runIndex)
+	log.Printf("run index: %d", runIndex)
 
 	for s := 1; s <= suiteRuns; s++ {
-		log.Printf("suite run: %d/%d\n", s, suiteRuns)
-		err := benchmark.RunSuite(csvWriter, functions, runIndex, s)
+		log.Printf("suite run: %d/%d", s, suiteRuns)
+		err := benchmark.RunSuite(log, csvWriter, functions, runIndex, s)
 		if err != nil {
 			return err
 		}

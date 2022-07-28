@@ -10,20 +10,19 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
-var mbCmd = &cobra.Command{
-	Use:   "mb",
-	Short: "Run microbenchmarks in the cloud",
-	Run:   cli.WrapRunE(mbRun),
+func mbCmd(log *logger.Logger) *cobra.Command {
+	return &cobra.Command{
+		Use:   "mb",
+		Short: "Run microbenchmarks in the cloud",
+		Run:   cli.WrapRunE(log, mbRun),
+	}
 }
 
-func init() {
-	rootCmd.AddCommand(mbCmd)
-}
-
-func mbRun(cmd *cobra.Command, args []string) error {
+func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	conf, err := config.NewConductorConfig(cmd)
 	if err != nil {
 		return err
@@ -51,7 +50,7 @@ func mbRun(cmd *cobra.Command, args []string) error {
 	}
 	// close open ssh connection
 	defer instance.Close()
-	log.Printf("[%s]: instance up (%s)\n", instance.Name(), instance.ExternalIP())
+	log.Printf("[%s]: instance up (%s)", instance.Name(), instance.ExternalIP())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {

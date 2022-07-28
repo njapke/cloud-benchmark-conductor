@@ -123,3 +123,17 @@ func CombineFunctions(v1, v2 []Function) []VersionedFunction {
 	}
 	return result
 }
+
+func CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2 string) ([]VersionedFunction, error) {
+	functionsV1, err := GetFunctions(sourcePathV1)
+	if err != nil {
+		return nil, err
+	}
+
+	functionsV2, err := GetFunctions(sourcePathV2)
+	if err != nil {
+		return nil, err
+	}
+
+	return CombineFunctions(functionsV1, functionsV2), nil
+}

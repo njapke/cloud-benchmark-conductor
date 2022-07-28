@@ -5,12 +5,10 @@ import (
 	"os"
 )
 
-var defaultLogger *log.Logger
-
-func init() {
-	defaultLogger = log.New(os.Stderr, "", log.LstdFlags)
+type Logger struct {
+	*log.Logger
 }
 
-func Default() *log.Logger {
-	return defaultLogger
+func New() *Logger {
+	return &Logger{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 }

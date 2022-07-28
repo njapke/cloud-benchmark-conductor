@@ -3,11 +3,11 @@ package gcloud
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/compute/v1"
 )
@@ -80,7 +80,7 @@ func (i *Instance) Close() error {
 	return nil
 }
 
-func (i *Instance) Run(ctx context.Context, logger *log.Logger, cmd string) error {
+func (i *Instance) Run(ctx context.Context, logger *logger.Logger, cmd string) error {
 	if err := i.establishSSHConnection(ctx); err != nil {
 		return err
 	}

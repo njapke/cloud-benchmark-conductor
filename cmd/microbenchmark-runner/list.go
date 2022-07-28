@@ -6,43 +6,31 @@ import (
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
+	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all overlapping benchmark functions of the given source paths",
-	Run:   cli.WrapRunE(listRun),
+func listCmd(log *logger.Logger) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List all overlapping benchmark functions of the given source paths",
+		Run:   cli.WrapRunE(log, listRun),
+	}
+	cmd.Flags().Bool("json", false, "output in json format")
+	cmd.Flags().SortFlags = true
+	return cmd
 }
 
-func init() {
-	listCmd.Flags().StringP("source-path-v1", "1", "", "source path for version 1")
-	_ = listCmd.MarkFlagRequired("source-path-v1")
-	listCmd.Flags().StringP("source-path-v2", "2", "", "source path for version 2")
-	_ = listCmd.MarkFlagRequired("source-path-v2")
-	listCmd.Flags().Bool("json", false, "output in json format")
-	listCmd.Flags().SortFlags = true
-	rootCmd.AddCommand(listCmd)
-}
-
-func listRun(cmd *cobra.Command, args []string) error {
-	flags := cmd.Flags()
-	sourcePathV1, _ := flags.GetString("source-path-v1")
-	sourcePathV2, _ := flags.GetString("source-path-v2")
-	outputJSON, _ := flags.GetBool("json")
+func listRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
+	sourcePathV1 := cli.MustGetString(cmd, "source-path-v1")
+	sourcePathV2 := cli.MustGetString(cmd, "source-path-v2")
+	outputJSON := cli.MustGetBool(cmd, "json")
 	log.Printf("listing benchmarks for %s and %s", sourcePathV1, sourcePathV2)
-	functionsV1, err := benchmark.GetFunctions(sourcePathV1)
+
+	combinedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
 		return err
 	}
-
-	functionsV2, err := benchmark.GetFunctions(sourcePathV2)
-	if err != nil {
-		return err
-	}
-
-	combinedFunctions := benchmark.CombineFunctions(functionsV1, functionsV2)
-
 	if outputJSON {
 		return json.NewEncoder(os.Stdout).Encode(combinedFunctions)
 	}
