@@ -73,7 +73,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 }
 
 func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
-	cmd.PersistentFlags().String("config", "", "config file")
+	cmd.PersistentFlags().StringP("config", "c", "", "config file")
 	cmd.PersistentFlags().String("project", os.Getenv("CLOUDSDK_CORE_PROJECT"), "google cloud project")
 	cmd.PersistentFlags().String("region", os.Getenv("CLOUDSDK_COMPUTE_REGION"), "compute region")
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
