@@ -30,7 +30,7 @@ var cleanupCmd = &cobra.Command{
 			deletedResources, err = service.Cleanup(context.Background())
 		} else {
 			log.Println("deleting instances only...")
-			deletedResources, err = service.DeleteInstances(context.Background())
+			deletedResources, err = service.CleanupInstances(context.Background())
 		}
 		if err != nil {
 			return err

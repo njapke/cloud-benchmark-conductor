@@ -6,6 +6,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/perf v0.0.0-20220722155240-3d85ee92886d
 	google.golang.org/api v0.89.0
 	gopkg.in/yaml.v3 v3.0.0

@@ -3,28 +3,31 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh"
 )
 
 type ConductorConfig struct {
-	Project      string
-	Region       string
-	Zone         string
-	InstanceType string `yaml:"instanceType"`
-	SSHPublicKey string `yaml:"sshPublicKey"`
+	Project       string
+	Region        string
+	Zone          string
+	InstanceType  string     `yaml:"instanceType"`
+	SSHPrivateKey string     `yaml:"sshPrivateKey"`
+	SSHSigner     ssh.Signer `yaml:"-"`
 }
 
 func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 	c := &ConductorConfig{
-		Project:      viper.GetString("project"),
-		Region:       viper.GetString("region"),
-		Zone:         viper.GetString("zone"),
-		InstanceType: viper.GetString("instanceType"),
-		SSHPublicKey: viper.GetString("sshPublicKey"),
+		Project:       viper.GetString("project"),
+		Region:        viper.GetString("region"),
+		Zone:          viper.GetString("zone"),
+		InstanceType:  viper.GetString("instanceType"),
+		SSHPrivateKey: viper.GetString("sshPrivateKey"),
 	}
 
 	var confErr error
@@ -40,13 +43,32 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 	if c.InstanceType == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing instance type"))
 	}
-	if c.SSHPublicKey == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing public key"))
+	if c.SSHPrivateKey == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing ssh private key"))
 	}
 	if confErr != nil {
 		return nil, confErr
 	}
 
+	var privateKeyData []byte
+
+	if strings.HasPrefix(c.SSHPrivateKey, "-----BEGIN OPENSSH PRIVATE KEY-----") {
+		// load private key directly from config
+		privateKeyData = []byte(c.SSHPrivateKey)
+	} else {
+		// load private key form file
+		pkFileData, err := os.ReadFile(c.SSHPrivateKey)
+		if err != nil {
+			return nil, err
+		}
+		privateKeyData = pkFileData
+	}
+
+	sshSigner, err := ssh.ParsePrivateKey(privateKeyData)
+	if err != nil {
+		return nil, err
+	}
+	c.SSHSigner = sshSigner
 	return c, nil
 }
 
@@ -55,25 +77,13 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("project", os.Getenv("CLOUDSDK_CORE_PROJECT"), "google cloud project")
 	cmd.PersistentFlags().String("region", os.Getenv("CLOUDSDK_COMPUTE_REGION"), "compute region")
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
-	cli.Must(viper.BindPFlags(cmd.PersistentFlags()))
+	cmd.PersistentFlags().StringP("ssh-private-key", "i", "", "path to ssh private key")
+	cmd.PersistentFlags().String("instance-type", "f1-micro", "instance type")
 
-	viper.SetDefault("instanceType", "f1-micro")
-}
-
-func InitConfig(cmd *cobra.Command, defaultConfigFile string) error {
-	configFile := cli.MustGetString(cmd, "config")
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
-	} else {
-		viper.AddConfigPath(".")
-		viper.SetConfigName(defaultConfigFile)
-	}
-	viper.SetConfigType("yaml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return err
-		}
-	}
-	return nil
+	cli.Must(viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config")))
+	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
+	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
+	cli.Must(viper.BindPFlag("zone", cmd.PersistentFlags().Lookup("zone")))
+	cli.Must(viper.BindPFlag("sshPrivateKey", cmd.PersistentFlags().Lookup("ssh-private-key")))
+	cli.Must(viper.BindPFlag("instanceType", cmd.PersistentFlags().Lookup("instance-type")))
 }

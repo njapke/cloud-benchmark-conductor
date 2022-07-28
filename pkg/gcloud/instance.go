@@ -5,11 +5,15 @@ import (
 	"net"
 	"time"
 
+	"github.com/christophwitzko/master-thesis/pkg/config"
+	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/compute/v1"
 )
 
 type Instance struct {
+	config           *config.ConductorConfig
 	internalInstance *compute.Instance
+	sshClient        *ssh.Client
 }
 
 func (i *Instance) Name() string {
@@ -34,4 +38,12 @@ func (i *Instance) WaitForSSHPortReady(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (i *Instance) EstablishSSHConnection(ctx context.Context) error {
+	if i.sshClient != nil {
+		return nil
+	}
+
+	return nil
 }

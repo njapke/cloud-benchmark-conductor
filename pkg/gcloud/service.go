@@ -7,6 +7,7 @@ import (
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/hashicorp/go-multierror"
+	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -36,7 +37,7 @@ func (s *Service) labels() map[string]string {
 }
 
 func (s *Service) metadata() *compute.Metadata {
-	value := fmt.Sprintf("ubuntu:%s ubuntu", s.config.SSHPublicKey)
+	value := fmt.Sprintf("ubuntu:%s ubuntu", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
 	return &compute.Metadata{
 		Items: []*compute.MetadataItems{
 			{Key: "ssh-keys", Value: &value},
@@ -133,6 +134,7 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 		return nil, err
 	}
 	return &Instance{
+		config:           s.config,
 		internalInstance: instance,
 	}, nil
 }
@@ -195,7 +197,7 @@ func (s *Service) CreateInstance(ctx context.Context, name string) (*Instance, e
 	return s.GetInstance(ctx, name)
 }
 
-func (s *Service) DeleteInstances(ctx context.Context) ([]string, error) {
+func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
 	instancesList, err := s.computeService.Instances.List(s.config.Project, s.config.Zone).Context(ctx).Do()
 	if err != nil {
 		return nil, err
@@ -244,7 +246,7 @@ func (s *Service) EnsureFirewallRules(ctx context.Context) error {
 func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
 	var mErr error
 	deletedResources := make([]string, 0)
-	if deletedInstances, err := s.DeleteInstances(ctx); err != nil {
+	if deletedInstances, err := s.CleanupInstances(ctx); err != nil {
 		mErr = multierror.Append(mErr, err)
 	} else {
 		deletedResources = append(deletedResources, deletedInstances...)
