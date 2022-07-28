@@ -1,14 +1,17 @@
 package logger
 
 import (
-	"log"
-	"os"
+	"github.com/sirupsen/logrus"
 )
 
 type Logger struct {
-	*log.Logger
+	*logrus.Logger
 }
 
 func New() *Logger {
-	return &Logger{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+	log := logrus.New()
+	log.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	return &Logger{Logger: log}
 }

@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -8,7 +10,8 @@ import (
 func WrapRunE(log *logger.Logger, fn func(log *logger.Logger, cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
 	return func(cmd *cobra.Command, args []string) {
 		if err := fn(log, cmd, args); err != nil {
-			log.Fatalf("ERROR: %v", err)
+			log.Errorf("ERROR: %v", err)
+			os.Exit(1)
 		}
 	}
 }

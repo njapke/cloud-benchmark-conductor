@@ -130,7 +130,7 @@ func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version,
 	for bReader.Scan() {
 		switch rec := bReader.Result(); rec := rec.(type) {
 		case *benchfmt.SyntaxError:
-			log.Printf("syntax error: %s", rec.Error())
+			log.Warnf("syntax error: %s", rec.Error())
 			continue
 		case *benchfmt.Result:
 			res := NewResult(f, version, run, suite, i+1, rec)
@@ -140,7 +140,7 @@ func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version,
 			csvWriter.Flush()
 			i++
 		default:
-			log.Printf("unknown record type: %T", rec)
+			log.Warnf("unknown record type: %T", rec)
 			continue
 		}
 	}
@@ -163,12 +163,12 @@ func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction V
 		aVersion, bVersion = 2, 1
 	}
 
-	log.Printf("  |--> running[%d]: %s", aVersion, a.Directory)
+	log.Infof("  |--> running[%d]: %s", aVersion, a.Directory)
 	if err := RunFunction(log, csvWriter, a, aVersion, run, suite); err != nil {
 		return err
 	}
 
-	log.Printf("  |--> running[%d]: %s", bVersion, b.Directory)
+	log.Infof("  |--> running[%d]: %s", bVersion, b.Directory)
 	if err := RunFunction(log, csvWriter, b, bVersion, run, suite); err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns []VersionedFunction
 	})
 
 	for _, function := range newFns {
-		log.Printf("--| benchmarking: %s", function.String())
+		log.Infof("--| benchmarking: %s", function.String())
 		err := RunVersionedFunction(log, csvWriter, function, run, suite)
 		if err != nil {
 			return err

@@ -25,7 +25,7 @@ func listRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathV1 := cli.MustGetString(cmd, "source-path-v1")
 	sourcePathV2 := cli.MustGetString(cmd, "source-path-v2")
 	outputJSON := cli.MustGetBool(cmd, "json")
-	log.Printf("listing benchmarks for %s and %s", sourcePathV1, sourcePathV2)
+	log.Infof("listing benchmarks for %s and %s", sourcePathV1, sourcePathV2)
 
 	combinedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
@@ -35,9 +35,9 @@ func listRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return json.NewEncoder(os.Stdout).Encode(combinedFunctions)
 	}
 	for _, fn := range combinedFunctions {
-		log.Printf("%s (%s)", fn.V1.Name, fn.V1.PackageName)
-		log.Printf("--> %s", fn.V1.Directory)
-		log.Printf("--> %s", fn.V2.Directory)
+		log.Infof("%s (%s)", fn.V1.Name, fn.V1.PackageName)
+		log.Infof("--> %s", fn.V1.Directory)
+		log.Infof("--> %s", fn.V2.Directory)
 	}
 	return nil
 }

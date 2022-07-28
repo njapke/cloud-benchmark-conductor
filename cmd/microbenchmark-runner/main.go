@@ -55,7 +55,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if outputFile == "-" {
 		csvWriter = csv.NewWriter(os.Stdout)
 	} else {
-		log.Printf("writing output to %s", outputFile)
+		log.Infof("writing output to %s", outputFile)
 		outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
@@ -70,10 +70,10 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		csvWriter.Flush()
 	}
 
-	log.Printf("run index: %d", runIndex)
+	log.Infof("run index: %d", runIndex)
 
 	for s := 1; s <= suiteRuns; s++ {
-		log.Printf("suite run: %d/%d", s, suiteRuns)
+		log.Infof("suite run: %d/%d", s, suiteRuns)
 		err := benchmark.RunSuite(log, csvWriter, functions, runIndex, s)
 		if err != nil {
 			return err
@@ -83,6 +83,6 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err := csvWriter.Error(); err != nil {
 		return err
 	}
-	log.Println("done")
+	log.Info("done")
 	return nil
 }

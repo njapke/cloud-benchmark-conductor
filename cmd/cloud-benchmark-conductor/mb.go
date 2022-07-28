@@ -38,11 +38,11 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Println("setting up firewall rules")
+	log.Info("setting up firewall rules")
 	if err := service.EnsureFirewallRules(ctx); err != nil {
 		return err
 	}
-	log.Println("setting up instance")
+	log.Info("setting up instance")
 	//instance, err := service.CreateInstance(ctx, "test")
 	instance, err := service.GetInstance(ctx, "test")
 	if err != nil {
@@ -50,22 +50,22 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	// close open ssh connection
 	defer instance.Close()
-	log.Printf("[%s]: instance up (%s)", instance.Name(), instance.ExternalIP())
+	log.Infof("[%s]: instance up (%s)", instance.Name(), instance.ExternalIP())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		if err := instance.Run(ctx, log, "ping 1.1.1.1"); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 		wg.Done()
 	}()
 	go func() {
 		if err := instance.Run(ctx, log, "ping 8.8.8.8"); err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 		wg.Done()
 	}()
 	wg.Wait()
-	log.Println("done")
+	log.Info("done")
 	return nil
 }

@@ -31,21 +31,21 @@ func cleanupRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Println("cleanup started...")
+	log.Info("cleanup started...")
 	cleanupAll := cli.MustGetBool(cmd, "all")
 	var deletedResources []string
 	if cleanupAll {
 		deletedResources, err = service.Cleanup(context.Background())
 	} else {
-		log.Println("deleting instances only...")
+		log.Info("deleting instances only...")
 		deletedResources, err = service.CleanupInstances(context.Background())
 	}
 	if err != nil {
 		return err
 	}
 	for _, resource := range deletedResources {
-		log.Printf("deleted %s", resource)
+		log.Warnf("deleted: %s", resource)
 	}
-	log.Println("cleanup finished")
+	log.Info("cleanup finished")
 	return nil
 }

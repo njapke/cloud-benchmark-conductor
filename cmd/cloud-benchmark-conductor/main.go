@@ -22,12 +22,12 @@ Therefore compute instances are provisioned and used to execute the benchmarks.`
 	}
 	cobra.OnInitialize(func() {
 		if err := config.InitConfig(rootCmd, "cbc.yaml"); err != nil {
-			log.Printf("Config error: %v", err)
+			log.Errorf("Config error: %v", err)
 			os.Exit(1)
 		}
 		usedConfigFile := viper.ConfigFileUsed()
 		if usedConfigFile != "" {
-			log.Printf("using config: %s", usedConfigFile)
+			log.Infof("using config: %s", usedConfigFile)
 		}
 	})
 	config.ConductorSetupFlagsAndViper(rootCmd)
