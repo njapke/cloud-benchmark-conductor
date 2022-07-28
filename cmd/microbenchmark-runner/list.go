@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
@@ -22,9 +23,14 @@ func listCmd(log *logger.Logger) *cobra.Command {
 }
 
 func listRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
-	sourcePathV1 := cli.MustGetString(cmd, "source-path-v1")
-	sourcePathV2 := cli.MustGetString(cmd, "source-path-v2")
+	sourcePathV1 := cli.MustGetString(cmd, "v1")
+	sourcePathV2 := cli.MustGetString(cmd, "v2")
 	outputJSON := cli.MustGetBool(cmd, "json")
+
+	if sourcePathV1 == "" || sourcePathV2 == "" {
+		return fmt.Errorf("source-path-v1 and source-path-v2 are required")
+	}
+
 	log.Infof("listing benchmarks for %s and %s", sourcePathV1, sourcePathV2)
 
 	combinedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)

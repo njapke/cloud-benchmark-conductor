@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/benchmark/setup"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
@@ -21,17 +23,19 @@ func main() {
 			DisableDefaultCmd: true,
 		},
 	}
-	rootCmd.PersistentFlags().StringP("source-path-v1", "1", "", "source path for version 1")
-	_ = rootCmd.MarkPersistentFlagRequired("source-path-v1")
-	rootCmd.PersistentFlags().StringP("source-path-v2", "2", "", "source path for version 2")
-	_ = rootCmd.MarkPersistentFlagRequired("source-path-v2")
+	rootCmd.PersistentFlags().String("v1", "", "source path or git reference for version 1")
+	rootCmd.PersistentFlags().String("v2", "", "source path or git reference for version 2")
 
 	rootCmd.AddCommand(listCmd(log))
 
-	rootCmd.Flags().IntP("run", "r", 1, "run index")
+	rootCmd.Flags().Int("run", 1, "current run index")
+	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
+
 	rootCmd.Flags().Bool("csv-header", false, "add csv header")
-	rootCmd.Flags().Int("suite-runs", 3, "suite runs")
 	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
+
+	rootCmd.Flags().String("git-repository", "", "git repository to use for benchmarking")
+	rootCmd.Flags().String("benchmark-directory", ".bench", "directory to use for benchmarking")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -39,18 +43,35 @@ func main() {
 }
 
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
-	sourcePathV1 := cli.MustGetString(cmd, "source-path-v1")
-	sourcePathV2 := cli.MustGetString(cmd, "source-path-v2")
+	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
+	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
 	runIndex := cli.MustGetInt(cmd, "run")
-	csvHeader := cli.MustGetBool(cmd, "csv-header")
 	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
+	csvHeader := cli.MustGetBool(cmd, "csv-header")
 	outputFile := cli.MustGetString(cmd, "output")
+	gitRepository := cli.MustGetString(cmd, "git-repository")
+	benchmarkDirectory := cli.MustGetString(cmd, "benchmark-directory")
+
+	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
+		return fmt.Errorf("source path or git reference for version 1 & 2 are required")
+	}
+
+	var sourcePathV1, sourcePathV2 string
+	if gitRepository != "" {
+		var err error
+		sourcePathV1, sourcePathV2, err = setup.SourcePathsFromGitRepository(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
+		if err != nil {
+			return err
+		}
+	} else {
+		sourcePathV1, sourcePathV2 = sourcePathOrRefV1, sourcePathOrRefV2
+	}
 
 	functions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
 		return err
 	}
-
+	// TODO: add functions filter
 	var csvWriter *csv.Writer
 	if outputFile == "-" {
 		csvWriter = csv.NewWriter(os.Stdout)
