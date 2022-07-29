@@ -19,6 +19,7 @@ type ConductorConfig struct {
 	InstanceType  string     `yaml:"instanceType"`
 	SSHPrivateKey string     `yaml:"sshPrivateKey"`
 	SSHSigner     ssh.Signer `yaml:"-"`
+	GoVersion     string     `yaml:"goVersion"`
 }
 
 func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
@@ -28,6 +29,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 		Zone:          viper.GetString("zone"),
 		InstanceType:  viper.GetString("instanceType"),
 		SSHPrivateKey: viper.GetString("sshPrivateKey"),
+		GoVersion:     viper.GetString("goVersion"),
 	}
 
 	var confErr error
@@ -79,6 +81,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
 	cmd.PersistentFlags().StringP("ssh-private-key", "i", "", "path to ssh private key")
 	cmd.PersistentFlags().String("instance-type", "f1-micro", "instance type")
+	cmd.PersistentFlags().String("go-version", "1.18.4", "go version")
 
 	cli.Must(viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config")))
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
@@ -86,4 +89,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("zone", cmd.PersistentFlags().Lookup("zone")))
 	cli.Must(viper.BindPFlag("sshPrivateKey", cmd.PersistentFlags().Lookup("ssh-private-key")))
 	cli.Must(viper.BindPFlag("instanceType", cmd.PersistentFlags().Lookup("instance-type")))
+	cli.Must(viper.BindPFlag("goVersion", cmd.PersistentFlags().Lookup("go-version")))
 }

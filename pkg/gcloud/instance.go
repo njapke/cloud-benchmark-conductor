@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 )
 
 type Instance struct {
-	config           *config.ConductorConfig
+	Config           *config.ConductorConfig
 	internalInstance *computepb.Instance
 	sshClient        *SSHClient
 	sshClientMutex   sync.Mutex
@@ -31,6 +32,10 @@ func (i *Instance) ExternalIP() string {
 
 func (i *Instance) SSHEndpoint() string {
 	return i.ExternalIP() + ":22"
+}
+
+func (i *Instance) logPrefix() string {
+	return fmt.Sprintf("[%s]", i.Name())
 }
 
 func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
@@ -66,7 +71,7 @@ func (i *Instance) establishSSHConnection(ctx context.Context) error {
 	}
 	sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, sshEndpoint, &ssh.ClientConfig{
 		User:            "ubuntu",
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.config.SSHSigner)},
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.Config.SSHSigner)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
@@ -87,13 +92,31 @@ func (i *Instance) Close() error {
 	return nil
 }
 
-func (i *Instance) Run(ctx context.Context, logger *logger.Logger, cmd string) error {
+func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd string) error {
 	if err := i.establishSSHConnection(ctx); err != nil {
 		return err
 	}
+	lp := i.logPrefix()
 	return i.sshClient.Run(ctx, func(out string, err string) {
-		logger.Printf("[%s|%s] %s%s", i.Name(), cmd, out, err)
+		logger.Printf("%s |%s| %s%s", lp, cmd, out, err)
 	}, cmd)
+}
+
+func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) {
+	if err := i.establishSSHConnection(ctx); err != nil {
+		return "", "", err
+	}
+	var stdout strings.Builder
+	var stderr strings.Builder
+	err := i.sshClient.Run(ctx, func(out string, err string) {
+		if out != "" {
+			stdout.WriteString(out + "\n")
+		}
+		if err != "" {
+			stderr.WriteString(err + "\n")
+		}
+	}, cmd)
+	return stdout.String(), stderr.String(), err
 }
 
 func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
@@ -101,4 +124,13 @@ func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string
 		return err
 	}
 	return i.sshClient.CopyFile(ctx, data, file)
+}
+
+func (i *Instance) ExecuteActions(ctx context.Context, logger *logger.Logger, actions ...Action) error {
+	for _, action := range actions {
+		if err := action.Run(ctx, logger, i); err != nil {
+			return fmt.Errorf("failed to run action %s: %w", action.Name(), err)
+		}
+	}
+	return nil
 }

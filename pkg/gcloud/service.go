@@ -127,7 +127,7 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 		return nil, err
 	}
 	return &Instance{
-		config:           s.config,
+		Config:           s.config,
 		internalInstance: instance,
 	}, nil
 }

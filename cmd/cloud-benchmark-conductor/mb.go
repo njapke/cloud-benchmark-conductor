@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"os/signal"
 	"sync"
@@ -57,22 +56,22 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		if err := instance.Run(ctx, log, "ls -alF /tmp"); err != nil {
+		if err := instance.RunWithLog(ctx, log, "go version"); err != nil {
 			log.Error(err)
 		}
-		if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
-			log.Error(err)
-		}
-		if err := instance.Run(ctx, log, "ls -alF /tmp"); err != nil {
-			log.Error(err)
-		}
-		if err := instance.Run(ctx, log, "cat /tmp/hello.txt"); err != nil {
-			log.Error(err)
-		}
+		//if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
+		//	log.Error(err)
+		//}
+		//if err := instance.RunWithLog(ctx, log, "ls -alF /tmp"); err != nil {
+		//	log.Error(err)
+		//}
+		//if err := instance.RunWithLog(ctx, log, "cat /tmp/hello.txt"); err != nil {
+		//	log.Error(err)
+		//}
 		wg.Done()
 	}()
 	go func() {
-		if err := instance.Run(ctx, log, "ping 8.8.8.8"); err != nil {
+		if err := instance.ExecuteActions(ctx, log, &gcloud.ActionInstallGo{}); err != nil {
 			log.Error(err)
 		}
 		wg.Done()
