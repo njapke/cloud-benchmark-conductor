@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -99,8 +100,10 @@ func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, vers
 		timeoutArg,
 		countArg,
 		fmt.Sprintf("-bench=^%s$", f.Name),
-		f.FileName,
+		// package path relative to the root directory
+		"./" + filepath.Dir(f.FileName),
 	}
+
 	cmd := exec.Command("go", args...)
 	cmd.Dir = f.RootDirectory
 	pipeRead, pipeWrite := io.Pipe()

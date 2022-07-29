@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/benchmark/setup"
@@ -41,6 +42,9 @@ func main() {
 	rootCmd.MarkFlagsMutuallyExclusive("json", "csv")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "csv-header")
 
+	rootCmd.Flags().String("include-filter", ".*", "regular expression to filter packages or functions")
+	rootCmd.Flags().String("exclude-filter", "^$", "regular expression to exclude packages or functions")
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -61,10 +65,20 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	outputFile := cli.MustGetString(cmd, "output")
 	outputJSON := cli.MustGetBool(cmd, "json")
 	outputCSV := cli.MustGetBool(cmd, "csv")
-
 	// if --csv is not set and --json is set, output format should be json
 	if cmd.Flags().Lookup("json").Changed && !cmd.Flags().Lookup("csv").Changed {
 		outputCSV = false
+	}
+
+	includeRegexp := cli.MustGetString(cmd, "include-filter")
+	excludeRegexp := cli.MustGetString(cmd, "exclude-filter")
+	includeFilter, err := regexp.Compile(includeRegexp)
+	if err != nil {
+		return fmt.Errorf("invalid include filter expression %s: %w", includeRegexp, err)
+	}
+	excludeFilter, err := regexp.Compile(excludeRegexp)
+	if err != nil {
+		return fmt.Errorf("invalid exclude filter expression %s: %w", excludeRegexp, err)
 	}
 
 	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
@@ -86,7 +100,11 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// TODO: add versionedFunctions filter
+
+	versionedFunctions = versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
+		fnName := vf.String()
+		return includeFilter.MatchString(fnName) && !excludeFilter.MatchString(fnName)
+	})
 
 	if listFunctions {
 		for _, fn := range versionedFunctions {
@@ -107,8 +125,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			return err
 		}
 		defer func() {
-			outFile.Sync()
-			outFile.Close()
+			_ = outFile.Sync()
+			_ = outFile.Close()
 		}()
 		outputWriter = outFile
 	}
