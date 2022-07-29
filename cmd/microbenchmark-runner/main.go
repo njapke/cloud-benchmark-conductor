@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/benchmark/output"
 	"github.com/christophwitzko/master-thesis/pkg/benchmark/setup"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
@@ -62,7 +63,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
 
 	csvHeader := cli.MustGetBool(cmd, "csv-header")
-	outputFile := cli.MustGetString(cmd, "output")
+	outputPath := cli.MustGetString(cmd, "output")
 	outputJSON := cli.MustGetBool(cmd, "json")
 	outputCSV := cli.MustGetBool(cmd, "csv")
 	// if --csv is not set and --json is set, output format should be json
@@ -115,21 +116,15 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	var outputWriter io.Writer
-	if outputFile == "-" {
-		outputWriter = os.Stdout
-	} else {
-		log.Infof("writing output to %s", outputFile)
-		outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			_ = outFile.Sync()
-			_ = outFile.Close()
-		}()
-		outputWriter = outFile
+	if outputPath != "-" {
+		log.Infof("writing output to %s", outputPath)
 	}
+	var outputWriter io.WriteCloser
+	outputWriter, err = output.New(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to open output file %s: %w", outputPath, err)
+	}
+	defer outputWriter.Close()
 
 	var resultWriter benchmark.ResultWriter
 	if outputCSV {
