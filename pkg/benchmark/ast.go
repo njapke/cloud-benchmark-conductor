@@ -11,24 +11,30 @@ import (
 )
 
 type Function struct {
-	Name        string
-	Directory   string
-	PackageName string
+	Name          string
+	FileName      string
+	PackageName   string
+	RootDirectory string
 }
 
 func (f Function) String() string {
 	return fmt.Sprintf("%s.%s", f.PackageName, f.Name)
 }
 
-func (f Function) RelativeDirectory(wd string) string {
-	relativeDirectory, _ := filepath.Rel(wd, f.Directory)
-	return relativeDirectory
+func relativePath(base, target string) string {
+	rPath, err := filepath.Rel(base, target)
+	if err != nil {
+		panic(err)
+	}
+	return rPath
 }
 
 type astVisitor struct {
+	RootDirectory    string
 	CurrentDirectory string
+	CurrentFile      string
 	CurrentPackage   string
-	foundBenchmarks  []Function
+	FoundBenchmarks  []Function
 }
 
 func (a *astVisitor) Visit(node ast.Node) (w ast.Visitor) {
@@ -38,10 +44,11 @@ func (a *astVisitor) Visit(node ast.Node) (w ast.Visitor) {
 		if !strings.HasPrefix(fnName, "Benchmark") {
 			return nil
 		}
-		a.foundBenchmarks = append(a.foundBenchmarks, Function{
-			Name:        fnName,
-			Directory:   a.CurrentDirectory,
-			PackageName: a.CurrentPackage,
+		a.FoundBenchmarks = append(a.FoundBenchmarks, Function{
+			Name:          fnName,
+			FileName:      a.CurrentFile,
+			PackageName:   a.CurrentPackage,
+			RootDirectory: a.RootDirectory,
 		})
 		return nil
 	}
@@ -60,7 +67,8 @@ func findBenchmarksInDir(bv *astVisitor) error {
 	}
 	for pkgName, astPkg := range pkg {
 		bv.CurrentPackage = pkgName
-		for _, astFile := range astPkg.Files {
+		for astFileName, astFile := range astPkg.Files {
+			bv.CurrentFile = relativePath(bv.RootDirectory, astFileName)
 			ast.Walk(bv, astFile)
 		}
 	}
@@ -68,12 +76,13 @@ func findBenchmarksInDir(bv *astVisitor) error {
 }
 
 func GetFunctions(rootPath string) ([]Function, error) {
-	bv := &astVisitor{
-		foundBenchmarks: make([]Function, 0),
-	}
 	absRootPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return nil, err
+	}
+	bv := &astVisitor{
+		RootDirectory:   absRootPath,
+		FoundBenchmarks: make([]Function, 0),
 	}
 	err = filepath.WalkDir(absRootPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -88,7 +97,7 @@ func GetFunctions(rootPath string) ([]Function, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bv.foundBenchmarks, nil
+	return bv.FoundBenchmarks, nil
 }
 
 type VersionedFunction struct {
@@ -109,8 +118,20 @@ func findFunction(fns []Function, search Function) (Function, bool) {
 	return Function{}, false
 }
 
-func CombineFunctions(v1, v2 []Function) []VersionedFunction {
-	result := make([]VersionedFunction, 0)
+type VersionedFunctions []VersionedFunction
+
+func (vfs VersionedFunctions) Filter(predicate func(vf VersionedFunction) bool) VersionedFunctions {
+	result := make(VersionedFunctions, 0)
+	for _, vf := range vfs {
+		if predicate(vf) {
+			result = append(result, vf)
+		}
+	}
+	return result
+}
+
+func CombineFunctions(v1, v2 []Function) VersionedFunctions {
+	result := make(VersionedFunctions, 0)
 	for _, functionV1 := range v1 {
 		functionV2, ok := findFunction(v2, functionV1)
 		if !ok {
@@ -124,7 +145,7 @@ func CombineFunctions(v1, v2 []Function) []VersionedFunction {
 	return result
 }
 
-func CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2 string) ([]VersionedFunction, error) {
+func CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2 string) (VersionedFunctions, error) {
 	functionsV1, err := GetFunctions(sourcePathV1)
 	if err != nil {
 		return nil, err

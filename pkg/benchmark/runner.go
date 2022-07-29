@@ -20,14 +20,7 @@ const ExecutionCount = 5
 var timeoutArg = fmt.Sprintf("-timeout=%ds", Timeout)
 var countArg = fmt.Sprintf("-count=%d", ExecutionCount)
 
-var workingDirectory string
-
 func init() {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	workingDirectory = wd
 	rand.Seed(time.Now().Unix())
 }
 
@@ -47,7 +40,7 @@ var CSVOutputHeader = []string{
 	"R-S-I",
 	"package.BenchmarkFunction",
 	"Version",
-	"Directory",
+	"FileName",
 	"Iterations",
 	"sec/op",
 	"B/op",
@@ -80,7 +73,7 @@ func (r Result) Record() []string {
 		r.RSI(),
 		fmt.Sprintf("%s.%s", r.Function.PackageName, r.Function.Name),
 		strconv.FormatInt(int64(r.Version), 10),
-		r.Function.RelativeDirectory(workingDirectory),
+		r.Function.FileName,
 		strconv.FormatInt(int64(r.Iterations), 10),
 		strconv.FormatFloat(r.Ops, 'f', -1, 32),
 		strconv.FormatFloat(r.Bytes, 'f', -1, 32),
@@ -107,9 +100,10 @@ func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version,
 		timeoutArg,
 		countArg,
 		fmt.Sprintf("-bench=^%s$", f.Name),
-		f.Directory,
+		f.FileName,
 	}
 	cmd := exec.Command("go", args...)
+	cmd.Dir = f.RootDirectory
 	pipeRead, pipeWrite := io.Pipe()
 	cmd.Stdout = pipeWrite
 	cmd.Stderr = os.Stderr
@@ -163,12 +157,12 @@ func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction V
 		aVersion, bVersion = 2, 1
 	}
 
-	log.Infof("  |--> running[%d]: %s", aVersion, a.Directory)
+	log.Infof("  |--> running[v%d]: %s", aVersion, a.FileName)
 	if err := RunFunction(log, csvWriter, a, aVersion, run, suite); err != nil {
 		return err
 	}
 
-	log.Infof("  |--> running[%d]: %s", bVersion, b.Directory)
+	log.Infof("  |--> running[v%d]: %s", bVersion, b.FileName)
 	if err := RunFunction(log, csvWriter, b, bVersion, run, suite); err != nil {
 		return err
 	}
@@ -176,8 +170,8 @@ func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction V
 	return nil
 }
 
-func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns []VersionedFunction, run, suite int) error {
-	newFns := make([]VersionedFunction, len(fns))
+func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns VersionedFunctions, run, suite int) error {
+	newFns := make(VersionedFunctions, len(fns))
 	copy(newFns, fns)
 
 	// shuffle execution order
