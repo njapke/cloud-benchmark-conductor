@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -23,19 +24,19 @@ func main() {
 			DisableDefaultCmd: true,
 		},
 	}
-	rootCmd.PersistentFlags().String("v1", "", "source path or git reference for version 1")
-	rootCmd.PersistentFlags().String("v2", "", "source path or git reference for version 2")
+	rootCmd.Flags().String("v1", "", "source path or git reference for version 1")
+	rootCmd.Flags().String("v2", "", "source path or git reference for version 2")
+	rootCmd.Flags().String("git-repository", "", "git repository to use for benchmarking")
+	rootCmd.Flags().String("benchmark-directory", ".bench", "directory to use for benchmarking")
 
-	rootCmd.AddCommand(listCmd(log))
+	rootCmd.Flags().Bool("list", false, "list all overlapping benchmark functions of the given source paths")
+	rootCmd.Flags().Bool("json", false, "output in json format")
 
 	rootCmd.Flags().Int("run", 1, "current run index")
 	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
 
 	rootCmd.Flags().Bool("csv-header", false, "add csv header")
 	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
-
-	rootCmd.Flags().String("git-repository", "", "git repository to use for benchmarking")
-	rootCmd.Flags().String("benchmark-directory", ".bench", "directory to use for benchmarking")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -51,6 +52,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	outputFile := cli.MustGetString(cmd, "output")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	benchmarkDirectory := cli.MustGetString(cmd, "benchmark-directory")
+	listFunctions := cli.MustGetBool(cmd, "list")
+	outputJSON := cli.MustGetBool(cmd, "json")
 
 	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
 		return fmt.Errorf("source path or git reference for version 1 & 2 are required")
@@ -67,11 +70,23 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		sourcePathV1, sourcePathV2 = sourcePathOrRefV1, sourcePathOrRefV2
 	}
 
-	functions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
+	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
 		return err
 	}
-	// TODO: add functions filter
+	// TODO: add versionedFunctions filter
+
+	if listFunctions {
+		if outputJSON {
+			return json.NewEncoder(os.Stdout).Encode(versionedFunctions)
+		}
+		for _, fn := range versionedFunctions {
+			log.Infof("%s (%s)", fn.V1.Name, fn.V1.PackageName)
+			log.Infof("--> %s", fn.V1.FileName)
+			log.Infof("--> %s", fn.V2.FileName)
+		}
+		return nil
+	}
 	var csvWriter *csv.Writer
 	if outputFile == "-" {
 		csvWriter = csv.NewWriter(os.Stdout)
@@ -95,7 +110,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := benchmark.RunSuite(log, csvWriter, functions, runIndex, s)
+		err := benchmark.RunSuite(log, csvWriter, versionedFunctions, runIndex, s)
 		if err != nil {
 			return err
 		}
