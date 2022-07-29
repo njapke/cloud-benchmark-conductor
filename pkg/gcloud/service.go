@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
@@ -211,7 +212,10 @@ func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
 	})
 
 	var mErr error
+	var mErrMu sync.Mutex
 	deletedInstances := make([]string, 0)
+	var deletedInstancesMu sync.Mutex
+	var delWg sync.WaitGroup
 	for {
 		instance, err := instances.Next()
 		if err == iterator.Done {
@@ -220,18 +224,32 @@ func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		instanceName := *instance.Name
-		_, err = s.instancesClient.Delete(ctx, &computepb.DeleteInstanceRequest{
-			Project:  s.config.Project,
-			Zone:     s.config.Zone,
-			Instance: instanceName,
-		})
-		if err != nil {
-			mErr = multierror.Append(mErr, err)
-		} else {
+		delWg.Add(1)
+		go func(instanceName string) {
+			defer delWg.Done()
+			delOp, err := s.instancesClient.Delete(ctx, &computepb.DeleteInstanceRequest{
+				Project:  s.config.Project,
+				Zone:     s.config.Zone,
+				Instance: instanceName,
+			})
+			if err != nil {
+				mErrMu.Lock()
+				mErr = multierror.Append(mErr, err)
+				mErrMu.Unlock()
+				return
+			}
+			if err := delOp.Wait(ctx); err != nil {
+				mErrMu.Lock()
+				mErr = multierror.Append(mErr, err)
+				mErrMu.Unlock()
+				return
+			}
+			deletedInstancesMu.Lock()
 			deletedInstances = append(deletedInstances, "instances/"+instanceName)
-		}
+			deletedInstancesMu.Unlock()
+		}(*instance.Name)
 	}
+	delWg.Wait()
 	return deletedInstances, mErr
 }
 
