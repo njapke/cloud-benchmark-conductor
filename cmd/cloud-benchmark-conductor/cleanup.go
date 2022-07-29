@@ -30,6 +30,7 @@ func cleanupRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer service.Close()
 
 	log.Info("cleanup started...")
 	cleanupAll := cli.MustGetBool(cmd, "all")

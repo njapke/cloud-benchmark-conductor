@@ -4,26 +4,28 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"golang.org/x/crypto/ssh"
-	"google.golang.org/api/compute/v1"
+	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
 
 type Instance struct {
 	config           *config.ConductorConfig
-	internalInstance *compute.Instance
+	internalInstance *computepb.Instance
 	sshClient        *SSHClient
+	sshClientMutex   sync.Mutex
 }
 
 func (i *Instance) Name() string {
-	return i.internalInstance.Name
+	return *i.internalInstance.Name
 }
 
 func (i *Instance) ExternalIP() string {
-	return i.internalInstance.NetworkInterfaces[0].AccessConfigs[0].NatIP
+	return *i.internalInstance.NetworkInterfaces[0].AccessConfigs[0].NatIP
 }
 
 func (i *Instance) SSHEndpoint() string {
@@ -47,6 +49,8 @@ func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
 }
 
 func (i *Instance) establishSSHConnection(ctx context.Context) error {
+	i.sshClientMutex.Lock()
+	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
 		return nil
 	}
@@ -72,6 +76,8 @@ func (i *Instance) establishSSHConnection(ctx context.Context) error {
 }
 
 func (i *Instance) Close() error {
+	i.sshClientMutex.Lock()
+	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
 		err := i.sshClient.Close()
 		i.sshClient = nil

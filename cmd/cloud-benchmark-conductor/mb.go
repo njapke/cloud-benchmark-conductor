@@ -31,6 +31,7 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer service.Close()
 
 	// maximum runtime: 10 minutes
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
@@ -38,18 +39,19 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Info("setting up firewall rules")
+	log.Info("setting up firewall rules...")
 	if err := service.EnsureFirewallRules(ctx); err != nil {
 		return err
 	}
-	log.Info("setting up instance")
-	//instance, err := service.CreateInstance(ctx, "test")
-	instance, err := service.GetInstance(ctx, "test")
+
+	log.Info("setting up instance...")
+	instance, err := service.CreateInstance(ctx, "test")
 	if err != nil {
 		return err
 	}
 	// close open ssh connection
 	defer instance.Close()
+
 	log.Infof("[%s]: instance up (%s)", instance.Name(), instance.ExternalIP())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
