@@ -2,9 +2,11 @@ package gcloud
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 
+	"github.com/bramvdbogaerde/go-scp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -73,4 +75,13 @@ func (c *SSHClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string
 	case err := <-waitErrCh:
 		return err
 	}
+}
+
+func (c *SSHClient) CopyFile(ctx context.Context, data *bytes.Reader, remotePath string) error {
+	scpClient, err := scp.NewClientBySSH(c.sshClient)
+	if err != nil {
+		return fmt.Errorf("failed to create scp client: %w", err)
+	}
+	defer scpClient.Close()
+	return scpClient.Copy(ctx, data, remotePath, "0755", data.Size())
 }

@@ -5,6 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/compute v1.7.0
 	cloud.google.com/go/resourcemanager v1.2.0
+	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/otiai10/copy v1.7.0

@@ -1,6 +1,7 @@
 package gcloud
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -93,4 +94,11 @@ func (i *Instance) Run(ctx context.Context, logger *logger.Logger, cmd string) e
 	return i.sshClient.Run(ctx, func(out string, err string) {
 		logger.Printf("[%s|%s] %s%s", i.Name(), cmd, out, err)
 	}, cmd)
+}
+
+func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
+	if err := i.establishSSHConnection(ctx); err != nil {
+		return err
+	}
+	return i.sshClient.CopyFile(ctx, data, file)
 }

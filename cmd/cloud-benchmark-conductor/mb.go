@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"os/signal"
 	"sync"
@@ -56,7 +57,16 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		if err := instance.Run(ctx, log, "ping 1.1.1.1"); err != nil {
+		if err := instance.Run(ctx, log, "ls -alF /tmp"); err != nil {
+			log.Error(err)
+		}
+		if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
+			log.Error(err)
+		}
+		if err := instance.Run(ctx, log, "ls -alF /tmp"); err != nil {
+			log.Error(err)
+		}
+		if err := instance.Run(ctx, log, "cat /tmp/hello.txt"); err != nil {
 			log.Error(err)
 		}
 		wg.Done()
