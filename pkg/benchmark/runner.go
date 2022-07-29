@@ -1,7 +1,6 @@
 package benchmark
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"math/rand"
@@ -91,7 +90,7 @@ func (r Results) Records() [][]string {
 	return res
 }
 
-func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version, run, suite int) error {
+func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, version, run, suite int) error {
 	args := []string{
 		"test",
 		"-run=^$",
@@ -128,10 +127,9 @@ func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version,
 			continue
 		case *benchfmt.Result:
 			res := NewResult(f, version, run, suite, i+1, rec)
-			if err := csvWriter.Write(res.Record()); err != nil {
+			if err := resultWriter.Write(res); err != nil {
 				return err
 			}
-			csvWriter.Flush()
 			i++
 		default:
 			log.Warnf("unknown record type: %T", rec)
@@ -147,7 +145,7 @@ func RunFunction(log *logger.Logger, csvWriter *csv.Writer, f Function, version,
 	return nil
 }
 
-func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction VersionedFunction, run, suite int) error {
+func RunVersionedFunction(log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2
 
@@ -158,19 +156,19 @@ func RunVersionedFunction(log *logger.Logger, csvWriter *csv.Writer, vFunction V
 	}
 
 	log.Infof("  |--> running[v%d]: %s", aVersion, a.FileName)
-	if err := RunFunction(log, csvWriter, a, aVersion, run, suite); err != nil {
+	if err := RunFunction(log, resultWriter, a, aVersion, run, suite); err != nil {
 		return err
 	}
 
 	log.Infof("  |--> running[v%d]: %s", bVersion, b.FileName)
-	if err := RunFunction(log, csvWriter, b, bVersion, run, suite); err != nil {
+	if err := RunFunction(log, resultWriter, b, bVersion, run, suite); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns VersionedFunctions, run, suite int) error {
+func RunSuite(log *logger.Logger, resultWriter ResultWriter, fns VersionedFunctions, run, suite int) error {
 	newFns := make(VersionedFunctions, len(fns))
 	copy(newFns, fns)
 
@@ -181,7 +179,7 @@ func RunSuite(log *logger.Logger, csvWriter *csv.Writer, fns VersionedFunctions,
 
 	for _, function := range newFns {
 		log.Infof("--| benchmarking: %s", function.String())
-		err := RunVersionedFunction(log, csvWriter, function, run, suite)
+		err := RunVersionedFunction(log, resultWriter, function, run, suite)
 		if err != nil {
 			return err
 		}

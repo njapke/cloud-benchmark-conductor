@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/csv"
-	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/benchmark/setup"
@@ -30,13 +30,16 @@ func main() {
 	rootCmd.Flags().String("benchmark-directory", ".bench", "directory to use for benchmarking")
 
 	rootCmd.Flags().Bool("list", false, "list all overlapping benchmark functions of the given source paths")
-	rootCmd.Flags().Bool("json", false, "output in json format")
 
 	rootCmd.Flags().Int("run", 1, "current run index")
 	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
 
 	rootCmd.Flags().Bool("csv-header", false, "add csv header")
 	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
+	rootCmd.Flags().Bool("json", false, "output in json format")
+	rootCmd.Flags().Bool("csv", true, "output in csv format")
+	rootCmd.MarkFlagsMutuallyExclusive("json", "csv")
+	rootCmd.MarkFlagsMutuallyExclusive("json", "csv-header")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -46,14 +49,23 @@ func main() {
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
-	runIndex := cli.MustGetInt(cmd, "run")
-	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
-	csvHeader := cli.MustGetBool(cmd, "csv-header")
-	outputFile := cli.MustGetString(cmd, "output")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	benchmarkDirectory := cli.MustGetString(cmd, "benchmark-directory")
+
 	listFunctions := cli.MustGetBool(cmd, "list")
+
+	runIndex := cli.MustGetInt(cmd, "run")
+	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
+
+	csvHeader := cli.MustGetBool(cmd, "csv-header")
+	outputFile := cli.MustGetString(cmd, "output")
 	outputJSON := cli.MustGetBool(cmd, "json")
+	outputCSV := cli.MustGetBool(cmd, "csv")
+
+	// if --csv is not set and --json is set, output format should be json
+	if cmd.Flags().Lookup("json").Changed && !cmd.Flags().Lookup("csv").Changed {
+		outputCSV = false
+	}
 
 	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
 		return fmt.Errorf("source path or git reference for version 1 & 2 are required")
@@ -77,48 +89,55 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	// TODO: add versionedFunctions filter
 
 	if listFunctions {
-		if outputJSON {
-			return json.NewEncoder(os.Stdout).Encode(versionedFunctions)
-		}
 		for _, fn := range versionedFunctions {
-			log.Infof("%s (%s)", fn.V1.Name, fn.V1.PackageName)
-			log.Infof("--> %s", fn.V1.FileName)
-			log.Infof("--> %s", fn.V2.FileName)
+			log.Infof("%s", fn.V1.String())
+			log.Infof("--> %s", filepath.Join(fn.V1.RootDirectory, fn.V1.FileName))
+			log.Infof("--> %s", filepath.Join(fn.V2.RootDirectory, fn.V2.FileName))
 		}
 		return nil
 	}
-	var csvWriter *csv.Writer
+
+	var outputWriter io.Writer
 	if outputFile == "-" {
-		csvWriter = csv.NewWriter(os.Stdout)
+		outputWriter = os.Stdout
 	} else {
 		log.Infof("writing output to %s", outputFile)
 		outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
-		csvWriter = csv.NewWriter(outFile)
+		defer func() {
+			outFile.Sync()
+			outFile.Close()
+		}()
+		outputWriter = outFile
 	}
 
-	if csvHeader {
-		if err := csvWriter.Write(benchmark.CSVOutputHeader); err != nil {
+	var resultWriter benchmark.ResultWriter
+	if outputCSV {
+		resultWriter = benchmark.NewCSVResultWriter(outputWriter)
+	} else if outputJSON {
+		resultWriter = benchmark.NewJSONResultWriter(outputWriter)
+	} else {
+		return fmt.Errorf("no output format specified")
+	}
+
+	if csvWriter, ok := resultWriter.(*benchmark.CSVResultWriter); ok && csvHeader {
+		if err := csvWriter.WriteRaw(benchmark.CSVOutputHeader); err != nil {
 			return err
 		}
-		csvWriter.Flush()
 	}
 
 	log.Infof("run index: %d", runIndex)
 
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := benchmark.RunSuite(log, csvWriter, versionedFunctions, runIndex, s)
+		err := benchmark.RunSuite(log, resultWriter, versionedFunctions, runIndex, s)
 		if err != nil {
 			return err
 		}
 	}
 
-	if err := csvWriter.Error(); err != nil {
-		return err
-	}
 	log.Info("done")
 	return nil
 }
