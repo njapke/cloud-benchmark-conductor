@@ -56,11 +56,11 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	errGroup := &errgroup.Group{}
 
 	errGroup.Go(func() error {
-		//for i := 0; i < 1000; i++ {
-		//	if err := instance.RunWithLog(ctx, log, "echo $SSH_CONNECTION"); err != nil {
-		//		return err
-		//	}
-		//}
+		for i := 0; i < 1000; i++ {
+			if err := instance.RunWithLog(ctx, log, "uptime"); err != nil {
+				return err
+			}
+		}
 		return nil
 		//if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
 		//	log.Error(err)

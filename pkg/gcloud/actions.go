@@ -63,3 +63,15 @@ func (i *actionInstallGo) Run(ctx context.Context, instance *Instance) error {
 	i.log.Infof("%s go%s installed successfully", lp, instance.Config.GoVersion)
 	return nil
 }
+
+type actionInstallMicrobenchmarkRunner struct {
+	log *logger.Logger
+}
+
+func NewActionInstallMicrobenchmarkRunner(log *logger.Logger) *actionInstallMicrobenchmarkRunner {
+	return &actionInstallMicrobenchmarkRunner{log: log}
+}
+
+func (i *actionInstallMicrobenchmarkRunner) Name() string {
+	return "install-microbenchmark-runner"
+}
