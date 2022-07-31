@@ -18,6 +18,8 @@ import (
 type Instance struct {
 	Config           *config.ConductorConfig
 	internalInstance *computepb.Instance
+	sshPortReady     bool
+	sshPortMutex     sync.Mutex
 	sshClient        *SSHClient
 	sshClientMutex   sync.Mutex
 }
@@ -39,6 +41,11 @@ func (i *Instance) logPrefix() string {
 }
 
 func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
+	i.sshPortMutex.Lock()
+	defer i.sshPortMutex.Unlock()
+	if i.sshPortReady {
+		return nil
+	}
 	publicSSHEndpoint := i.SSHEndpoint()
 	for {
 		select {
@@ -48,26 +55,36 @@ func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
 			conn, err := net.DialTimeout("tcp4", publicSSHEndpoint, time.Second)
 			if err == nil {
 				_ = conn.Close()
+				i.sshPortReady = true
 				return nil
 			}
 		}
 	}
 }
 
-func (i *Instance) establishSSHConnection(ctx context.Context) error {
+func (i *Instance) ensureSSHClient(ctx context.Context) error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
 		return nil
 	}
-	if err := i.waitForSSHPortReady(ctx); err != nil {
+	sshClient, err := i.newSSHClient(ctx)
+	if err != nil {
 		return err
+	}
+	i.sshClient = sshClient
+	return nil
+}
+
+func (i *Instance) newSSHClient(ctx context.Context) (*SSHClient, error) {
+	if err := i.waitForSSHPortReady(ctx); err != nil {
+		return nil, err
 	}
 	sshEndpoint := i.SSHEndpoint()
 	var dialer net.Dialer
 	tcpConn, err := dialer.DialContext(ctx, "tcp4", sshEndpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, sshEndpoint, &ssh.ClientConfig{
 		User:            "ubuntu",
@@ -75,10 +92,9 @@ func (i *Instance) establishSSHConnection(ctx context.Context) error {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		return MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
+		return nil, MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
 	}
-	i.sshClient = &SSHClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}
-	return nil
+	return &SSHClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
 }
 
 func (i *Instance) Close() error {
@@ -92,8 +108,24 @@ func (i *Instance) Close() error {
 	return nil
 }
 
+func (i *Instance) Reconnect(ctx context.Context) error {
+	i.sshClientMutex.Lock()
+	defer i.sshClientMutex.Unlock()
+	if i.sshClient != nil {
+		// acquire session lock to prevent interrupting commands
+		i.sshClient.sshSessionMutex.Lock()
+		defer i.sshClient.sshSessionMutex.Unlock()
+		if err := i.sshClient.Close(); err != nil {
+			return err
+		}
+	}
+	var err error
+	i.sshClient, err = i.newSSHClient(ctx)
+	return err
+}
+
 func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd string) error {
-	if err := i.establishSSHConnection(ctx); err != nil {
+	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
 	lp := i.logPrefix()
@@ -103,7 +135,7 @@ func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd st
 }
 
 func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) {
-	if err := i.establishSSHConnection(ctx); err != nil {
+	if err := i.ensureSSHClient(ctx); err != nil {
 		return "", "", err
 	}
 	var stdout strings.Builder
@@ -120,15 +152,15 @@ func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) 
 }
 
 func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
-	if err := i.establishSSHConnection(ctx); err != nil {
+	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
-	return i.sshClient.CopyFile(ctx, data, file)
+	return i.sshClient.CopyFile(ctx, data, file, "0755")
 }
 
-func (i *Instance) ExecuteActions(ctx context.Context, logger *logger.Logger, actions ...Action) error {
+func (i *Instance) ExecuteActions(ctx context.Context, actions ...Action) error {
 	for _, action := range actions {
-		if err := action.Run(ctx, logger, i); err != nil {
+		if err := action.Run(ctx, i); err != nil {
 			return fmt.Errorf("failed to run action %s: %w", action.Name(), err)
 		}
 	}

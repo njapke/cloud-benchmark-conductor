@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func mbCmd(log *logger.Logger) *cobra.Command {
@@ -52,13 +52,16 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	// close open ssh connection
 	defer instance.Close()
 
-	log.Infof("[%s]: instance up (%s)", instance.Name(), instance.ExternalIP())
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		if err := instance.RunWithLog(ctx, log, "go version"); err != nil {
-			log.Error(err)
-		}
+	log.Infof("[%s] instance up (%s)", instance.Name(), instance.ExternalIP())
+	errGroup := &errgroup.Group{}
+
+	errGroup.Go(func() error {
+		//for i := 0; i < 1000; i++ {
+		//	if err := instance.RunWithLog(ctx, log, "echo $SSH_CONNECTION"); err != nil {
+		//		return err
+		//	}
+		//}
+		return nil
 		//if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
 		//	log.Error(err)
 		//}
@@ -68,15 +71,15 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		//if err := instance.RunWithLog(ctx, log, "cat /tmp/hello.txt"); err != nil {
 		//	log.Error(err)
 		//}
-		wg.Done()
-	}()
-	go func() {
-		if err := instance.ExecuteActions(ctx, log, &gcloud.ActionInstallGo{}); err != nil {
-			log.Error(err)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	})
+
+	errGroup.Go(func() error {
+		return instance.ExecuteActions(ctx, gcloud.NewActionInstallGo(log))
+	})
+
+	if err := errGroup.Wait(); err != nil {
+		return err
+	}
 	log.Info("done")
 	return nil
 }
