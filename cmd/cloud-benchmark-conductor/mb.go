@@ -53,28 +53,27 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	defer instance.Close()
 
 	log.Infof("[%s] instance up (%s)", instance.Name(), instance.ExternalIP())
-	errGroup := &errgroup.Group{}
+	errGroup, ctx := errgroup.WithContext(ctx)
+
+	//errGroup.Go(func() error {
+	//	for i := 0; i < 1000; i++ {
+	//		if err := instance.RunWithLog(ctx, log, "uptime"); err != nil {
+	//			return err
+	//		}
+	//	}
+	//	return nil
+	//	//if err := instance.RunWithLog(ctx, log, "cat /tmp/hello.txt"); err != nil {
+	//	//	log.Error(err)
+	//	//}
+	//})
 
 	errGroup.Go(func() error {
-		for i := 0; i < 1000; i++ {
-			if err := instance.RunWithLog(ctx, log, "uptime"); err != nil {
-				return err
-			}
+		err := instance.ExecuteActions(ctx, gcloud.NewActionInstallGo(log), gcloud.NewActionInstallMicrobenchmarkRunner(log))
+		if err != nil {
+			return err
 		}
-		return nil
-		//if err := instance.CopyFile(ctx, bytes.NewReader([]byte("hello world")), "/tmp/hello.txt"); err != nil {
-		//	log.Error(err)
-		//}
-		//if err := instance.RunWithLog(ctx, log, "ls -alF /tmp"); err != nil {
-		//	log.Error(err)
-		//}
-		//if err := instance.RunWithLog(ctx, log, "cat /tmp/hello.txt"); err != nil {
-		//	log.Error(err)
-		//}
-	})
-
-	errGroup.Go(func() error {
-		return instance.ExecuteActions(ctx, gcloud.NewActionInstallGo(log))
+		err = instance.RunWithLog(ctx, log, "microbenchmark-runner --v1 main --v2 main --git-repository https://github.com/christophwitzko/flight-booking-service.git --exclude-filter=\"^chi.*$\"")
+		return err
 	})
 
 	if err := errGroup.Wait(); err != nil {

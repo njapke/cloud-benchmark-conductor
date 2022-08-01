@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
@@ -18,6 +19,9 @@ func main() {
 Therefore compute instances are provisioned and used to execute the benchmarks.`,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
+		},
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			log.Info(cli.GetBuildInfo())
 		},
 	}
 	cobra.OnInitialize(func() {

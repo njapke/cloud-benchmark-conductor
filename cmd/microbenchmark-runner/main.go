@@ -29,7 +29,7 @@ func main() {
 	rootCmd.Flags().String("v1", "", "source path or git reference for version 1")
 	rootCmd.Flags().String("v2", "", "source path or git reference for version 2")
 	rootCmd.Flags().String("git-repository", "", "git repository to use for benchmarking")
-	rootCmd.Flags().String("benchmark-directory", ".bench", "directory to use for benchmarking")
+	rootCmd.Flags().String("benchmark-directory", "/tmp/.bench", "directory to use for benchmarking")
 
 	rootCmd.Flags().Bool("list", false, "list all overlapping benchmark functions of the given source paths")
 
@@ -70,6 +70,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Lookup("json").Changed && !cmd.Flags().Lookup("csv").Changed {
 		outputCSV = false
 	}
+
+	log.Info(cli.GetBuildInfo())
 
 	includeRegexp := cli.MustGetString(cmd, "include-filter")
 	excludeRegexp := cli.MustGetString(cmd, "exclude-filter")
