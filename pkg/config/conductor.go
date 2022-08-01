@@ -12,14 +12,21 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+type ConductorMicrobenchmarkConfig struct {
+	Repository    string
+	V1, V2        string
+	ExcludeFilter string `yaml:"excludeFilter"`
+}
+
 type ConductorConfig struct {
-	Project       string
-	Region        string
-	Zone          string
-	InstanceType  string     `yaml:"instanceType"`
-	SSHPrivateKey string     `yaml:"sshPrivateKey"`
-	SSHSigner     ssh.Signer `yaml:"-"`
-	GoVersion     string     `yaml:"goVersion"`
+	Project        string
+	Region         string
+	Zone           string
+	InstanceType   string     `yaml:"instanceType"`
+	SSHPrivateKey  string     `yaml:"sshPrivateKey"`
+	SSHSigner      ssh.Signer `yaml:"-"`
+	GoVersion      string     `yaml:"goVersion"`
+	Microbenchmark *ConductorMicrobenchmarkConfig
 }
 
 func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
@@ -30,6 +37,12 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 		InstanceType:  viper.GetString("instanceType"),
 		SSHPrivateKey: viper.GetString("sshPrivateKey"),
 		GoVersion:     viper.GetString("goVersion"),
+		Microbenchmark: &ConductorMicrobenchmarkConfig{
+			Repository:    viper.GetString("microbenchmark.repository"),
+			V1:            viper.GetString("microbenchmark.v1"),
+			V2:            viper.GetString("microbenchmark.v2"),
+			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
+		},
 	}
 
 	var confErr error
