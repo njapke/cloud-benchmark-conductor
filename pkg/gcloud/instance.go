@@ -129,6 +129,7 @@ func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd st
 		return err
 	}
 	lp := i.logPrefix()
+	shortCmd, _, _ := strings.Cut(cmd, " ")
 	return i.sshClient.Run(ctx, func(out string, err string) {
 		ioType := "OUT"
 		ioVal := out
@@ -136,7 +137,7 @@ func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd st
 			ioType = "ERR"
 			ioVal = err
 		}
-		logger.Printf("%s |%s|%s| %s", lp, cmd, ioType, ioVal)
+		logger.Printf("%s |%s|%s| %s", lp, shortCmd, ioType, ioVal)
 	}, cmd)
 }
 

@@ -106,6 +106,7 @@ func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, vers
 
 	cmd := exec.Command("go", args...)
 	cmd.Dir = f.RootDirectory
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	pipeRead, pipeWrite := io.Pipe()
 	cmd.Stdout = pipeWrite
 	cmd.Stderr = os.Stderr

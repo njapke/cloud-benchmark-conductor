@@ -55,17 +55,14 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	log.Infof("[%s] instance up (%s)", instance.Name(), instance.ExternalIP())
 	errGroup, ctx := errgroup.WithContext(ctx)
 
-	//errGroup.Go(func() error {
-	//	for i := 0; i < 1000; i++ {
-	//		if err := instance.RunWithLog(ctx, log, "uptime"); err != nil {
-	//			return err
-	//		}
-	//	}
-	//	return nil
-	//	//if err := instance.RunWithLog(ctx, log, "cat /tmp/hello.txt"); err != nil {
-	//	//	log.Error(err)
-	//	//}
-	//})
+	errGroup.Go(func() error {
+		for {
+			<-time.After(time.Second * 5)
+			if err := instance.RunWithLog(ctx, log, "uptime"); err != nil {
+				log.Errorf("[%s] error running uptime: %v", instance.Name(), err)
+			}
+		}
+	})
 
 	errGroup.Go(func() error {
 		err := instance.ExecuteActions(ctx, gcloud.NewActionInstallGo(log), gcloud.NewActionInstallMicrobenchmarkRunner(log))

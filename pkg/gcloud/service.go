@@ -45,7 +45,7 @@ func (s *Service) labels() map[string]string {
 }
 
 func (s *Service) metadata() *computepb.Metadata {
-	value := fmt.Sprintf("ubuntu:%s ubuntu", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
+	value := fmt.Sprintf("ubuntu:%s", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
 	return &computepb.Metadata{
 		Items: []*computepb.Items{
 			{Key: proto.String("ssh-keys"), Value: &value},

@@ -2,3 +2,4 @@
 analysis/.ipynb_checkpoints/
 google-application-credentials.json
 .envrc
+pkg/assets/mb-runner_linux_amd64
