@@ -36,13 +36,16 @@ func (i *Instance) SSHEndpoint() string {
 	return i.ExternalIP() + ":22"
 }
 
-func (i *Instance) logPrefix() string {
+func (i *Instance) LogPrefix() string {
 	return fmt.Sprintf("[%s]", i.Name())
 }
 
 func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
 	i.sshPortMutex.Lock()
 	defer i.sshPortMutex.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if i.sshPortReady {
 		return nil
 	}
@@ -60,20 +63,6 @@ func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
 			}
 		}
 	}
-}
-
-func (i *Instance) ensureSSHClient(ctx context.Context) error {
-	i.sshClientMutex.Lock()
-	defer i.sshClientMutex.Unlock()
-	if i.sshClient != nil {
-		return nil
-	}
-	sshClient, err := i.newSSHClient(ctx)
-	if err != nil {
-		return err
-	}
-	i.sshClient = sshClient
-	return nil
 }
 
 func (i *Instance) newSSHClient(ctx context.Context) (*SSHClient, error) {
@@ -97,6 +86,21 @@ func (i *Instance) newSSHClient(ctx context.Context) (*SSHClient, error) {
 	return &SSHClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
 }
 
+func (i *Instance) ensureSSHClient(ctx context.Context) error {
+	i.sshClientMutex.Lock()
+	defer i.sshClientMutex.Unlock()
+	if i.sshClient != nil {
+		return nil
+	}
+	sshClient, err := i.newSSHClient(ctx)
+	if err != nil {
+		return err
+	}
+	i.sshClient = sshClient
+	return nil
+}
+
+// Close SSH connection if open
 func (i *Instance) Close() error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
@@ -108,6 +112,7 @@ func (i *Instance) Close() error {
 	return nil
 }
 
+// Reconnect to instance via SSH
 func (i *Instance) Reconnect(ctx context.Context) error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
@@ -128,7 +133,7 @@ func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd st
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
-	lp := i.logPrefix()
+	lp := i.LogPrefix()
 	shortCmd, _, _ := strings.Cut(cmd, " ")
 	return i.sshClient.Run(ctx, func(out string, err string) {
 		ioType := "OUT"
@@ -166,9 +171,9 @@ func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string
 }
 
 func (i *Instance) ExecuteActions(ctx context.Context, actions ...Action) error {
-	for _, action := range actions {
-		if err := action.Run(ctx, i); err != nil {
-			return fmt.Errorf("failed to run action %s: %w", action.Name(), err)
+	for _, a := range actions {
+		if err := a.Run(ctx, i); err != nil {
+			return fmt.Errorf("failed to run action %s: %w", a.Name(), err)
 		}
 	}
 	return nil

@@ -1,10 +1,11 @@
-package gcloud
+package actions
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
@@ -22,8 +23,8 @@ func (a *actionInstallGo) Name() string {
 
 const PATHWithGoBin = `PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/go/bin"`
 
-func (a *actionInstallGo) Run(ctx context.Context, instance *Instance) error {
-	lp := instance.logPrefix() + "[" + a.Name() + "]"
+func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) error {
+	lp := instance.LogPrefix() + "[" + a.Name() + "]"
 
 	a.log.Infof("%s go version: %s...", lp, instance.Config.GoVersion)
 	a.log.Infof("%s downloading...", lp)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
@@ -16,7 +17,7 @@ type MicrobenchmarkConfig struct {
 }
 
 func (m MicrobenchmarkConfig) Cmd() string {
-	return fmt.Sprintf("microbenchmark-runner --run %d --v1 %s --v2 %s --git-repository %s --exclude-filter=\"%s\"", m.RunIndex, m.V1, m.V2, m.Repository, m.ExcludeFilter)
+	return fmt.Sprintf("microbenchmark-runner --list --run %d --v1 %s --v2 %s --git-repository %s --exclude-filter=\"%s\"", m.RunIndex, m.V1, m.V2, m.Repository, m.ExcludeFilter)
 }
 
 func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Service, mc MicrobenchmarkConfig) error {
@@ -29,7 +30,7 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Ser
 	// close open ssh connection
 	defer instance.Close()
 
-	err = instance.ExecuteActions(ctx, gcloud.NewActionInstallGo(log), gcloud.NewActionInstallMicrobenchmarkRunner(log))
+	err = instance.ExecuteActions(ctx, actions.NewActionInstallGo(log), actions.NewActionInstallMicrobenchmarkRunner(log))
 	if err != nil {
 		return err
 	}
