@@ -18,7 +18,7 @@ import (
 func mbCmd(log *logger.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "mb",
-		Short: "Run microbenchmarks in the cloud",
+		Short: "Run benchmarks in the cloud",
 		Run:   cli.WrapRunE(log, mbRun),
 	}
 }
@@ -46,7 +46,6 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	errGroup, ctx := errgroup.WithContext(ctx)
-
 	errGroup.Go(func() error {
 		return run.Microbenchmark(ctx, log, service, run.MicrobenchmarkConfig{
 			Repository:    conf.Microbenchmark.Repository,

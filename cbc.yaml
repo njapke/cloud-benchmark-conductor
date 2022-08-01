@@ -1,0 +1,18 @@
+# cloud benchmark conductor config
+project: mt-benchmarks
+region: europe-west1
+zone: europe-west1-b
+instanceType: f1-micro
+sshPrivateKey: |
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+  QyNTUxOQAAACCTFR1nYD4cigP3ItkQFrjbCr7vXMXc9J4nUxWXVGa31gAAAJAG4kyjBuJM
+  owAAAAtzc2gtZWQyNTUxOQAAACCTFR1nYD4cigP3ItkQFrjbCr7vXMXc9J4nUxWXVGa31g
+  AAAECyCqtlSb/bjV0Jgv+ZyHMUM77ZPg7fmFW2Is8gkDXhwJMVHWdgPhyKA/ci2RAWuNsK
+  vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
+  -----END OPENSSH PRIVATE KEY-----
+microbenchmark:
+  repository: https://github.com/christophwitzko/flight-booking-service.git
+  v1: main
+  v2: main
+  excludeFilter: "^chi.*$"
