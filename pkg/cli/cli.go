@@ -42,6 +42,12 @@ func MustGetInt(cmd *cobra.Command, name string) int {
 	return val
 }
 
+func MustGetStringArray(cmd *cobra.Command, name string) []string {
+	val, err := cmd.Flags().GetStringArray(name)
+	Must(err)
+	return val
+}
+
 func GetBuildInfo() string {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {

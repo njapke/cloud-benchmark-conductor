@@ -37,7 +37,7 @@ func main() {
 	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
 
 	rootCmd.Flags().Bool("csv-header", false, "add csv header")
-	rootCmd.Flags().StringP("output", "o", "-", "output file (default stdout)")
+	rootCmd.Flags().StringArrayP("output", "o", []string{"-"}, "output files (default stdout)")
 	rootCmd.Flags().Bool("json", false, "output in json format")
 	rootCmd.Flags().Bool("csv", true, "output in csv format")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "csv")
@@ -63,7 +63,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
 
 	csvHeader := cli.MustGetBool(cmd, "csv-header")
-	outputPath := cli.MustGetString(cmd, "output")
+	outputPaths := cli.MustGetStringArray(cmd, "output")
 	outputJSON := cli.MustGetBool(cmd, "json")
 	outputCSV := cli.MustGetBool(cmd, "csv")
 	// if --csv is not set and --json is set, output format should be json
@@ -118,13 +118,15 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if outputPath != "-" {
-		log.Infof("writing output to %s", outputPath)
+	if len(outputPaths) != 1 || outputPaths[0] != "-" {
+		for _, outputPath := range outputPaths {
+			log.Infof("writing output to %s", outputPath)
+		}
 	}
 	var outputWriter io.WriteCloser
-	outputWriter, err = output.New(outputPath)
+	outputWriter, err = output.NewMultiOutput(outputPaths)
 	if err != nil {
-		return fmt.Errorf("failed to open output file %s: %w", outputPath, err)
+		return fmt.Errorf("failed to open output: %w", err)
 	}
 	defer outputWriter.Close()
 
