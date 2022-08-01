@@ -1,6 +1,7 @@
 package benchmark
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"math/rand"
@@ -108,22 +109,30 @@ func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, vers
 	cmd.Dir = f.RootDirectory
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	pipeRead, pipeWrite := io.Pipe()
+	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = pipeWrite
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = logPipeWrite
+
+	benchFmtReader := io.TeeReader(pipeRead, logPipeWrite)
+	go func() {
+		logLineScanner := bufio.NewScanner(logPipeRead)
+		for logLineScanner.Scan() {
+			log.Infof("       | %s", logLineScanner.Text())
+		}
+	}()
 
 	errCh := make(chan error, 1)
 	go func() {
 		if err := cmd.Run(); err != nil {
 			errCh <- err
 		}
-		if err := pipeWrite.Close(); err != nil {
-			errCh <- err
-		}
+		_ = pipeWrite.Close()
+		_ = logPipeWrite.Close()
 		close(errCh)
 	}()
 
 	i := 0
-	bReader := benchfmt.NewReader(pipeRead, "bench.txt")
+	bReader := benchfmt.NewReader(benchFmtReader, "bench.txt")
 	for bReader.Scan() {
 		switch rec := bReader.Result(); rec := rec.(type) {
 		case *benchfmt.SyntaxError:
