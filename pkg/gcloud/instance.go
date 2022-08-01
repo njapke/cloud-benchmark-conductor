@@ -25,7 +25,7 @@ type Instance struct {
 }
 
 func (i *Instance) Name() string {
-	return *i.internalInstance.Name
+	return unprefixName(*i.internalInstance.Name)
 }
 
 func (i *Instance) ExternalIP() string {

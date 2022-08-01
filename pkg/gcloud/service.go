@@ -23,7 +23,11 @@ import (
 const toolName = "cloud-benchmark-conductor"
 
 func prefixName(n string) string {
-	return fmt.Sprintf("cloud-benchmark-conductor-%s", n)
+	return fmt.Sprintf("cloud-benchmark-conductor-%s", unprefixName(n))
+}
+
+func unprefixName(n string) string {
+	return strings.TrimPrefix(n, toolName+"-")
 }
 
 type Service struct {
