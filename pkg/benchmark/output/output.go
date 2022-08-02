@@ -4,67 +4,96 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
+	"path/filepath"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 )
 
-// adapted MultiWriter from https://github.com/golang/go/blob/master/src/io/multi.go
-type multiWriteCloser struct {
-	writeClosers []io.WriteCloser
+type Output struct {
+	Schema     string
+	Path       string
+	Type       string
+	Parameters url.Values
+	writer     io.WriteCloser
+	encoder    ResultEncoder
 }
 
-func (m *multiWriteCloser) Write(p []byte) (int, error) {
-	for _, w := range m.writeClosers {
-		n, err := w.Write(p)
-		if err != nil {
-			return n, err
-		}
-		if len(p) != n {
-			return n, io.ErrShortWrite
-		}
-	}
-	return len(p), nil
-}
-
-func (m *multiWriteCloser) Close() error {
-	var mErr error
-	for _, w := range m.writeClosers {
-		if err := w.Close(); err != nil {
-			mErr = multierror.Append(mErr, err)
-		}
-	}
-	return mErr
-}
-
-func New(outputPath string) (io.WriteCloser, error) {
-	if outputPath == "-" {
-		return newFileFromOSFile(os.Stdout)
-	}
+func newOutput(outputPath string, defaultType string) (*Output, error) {
+	outputType := defaultType
 	parsedPath, err := url.Parse(outputPath)
 	if err != nil {
 		return nil, err
 	}
-	if parsedPath.Scheme == "file" || parsedPath.Scheme == "" {
-		return newFileFromPath(parsedPath.Path)
+	if ext := filepath.Ext(parsedPath.Path); ext != "" {
+		outputType = ext[1:] // strip "."
 	}
-	return nil, fmt.Errorf("%s not implemented", parsedPath.Scheme)
+	schema := parsedPath.Scheme
+	if schema == "" {
+		schema = "file"
+	}
+	o := &Output{
+		Schema:     schema,
+		Path:       parsedPath.Path,
+		Type:       outputType,
+		Parameters: parsedPath.Query(),
+	}
+
+	// setup encoder
+	switch o.Type {
+	case "json":
+		o.encoder, err = NewJSONResultEncoder(o)
+	case "csv":
+		o.encoder, err = NewCSVResultEncoder(o)
+	default:
+		err = fmt.Errorf("unsupported output type: %s", o.Type)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return o, nil
 }
 
-func NewMultiOutput(outputPaths []string) (io.WriteCloser, error) {
-	writeClosers := make([]io.WriteCloser, 0, len(outputPaths))
+func (o *Output) open() error {
+	if o.writer != nil {
+		return nil
+	}
+	var err error
+	switch o.Schema {
+	case "file":
+		o.writer, err = newFileWriterFromPath(o.Path)
+	default:
+		err = fmt.Errorf("unsupported output schema: %s", o.Schema)
+	}
+	return err
+}
+
+func (o *Output) Write(result benchmark.Result) error {
+	if err := o.open(); err != nil {
+		return err
+	}
+	env, err := o.encoder.Encode(result)
+	if err != nil {
+		return err
+	}
+	_, err = o.writer.Write(env)
+	return err
+}
+
+func (o *Output) Close() error {
+	err := o.writer.Close()
+	o.writer = nil
+	return err
+}
+
+func New(outputPaths []string, defaultType string) (benchmark.ResultWriter, error) {
+	resultWriters := make([]benchmark.ResultWriter, 0, len(outputPaths))
 	for _, outputPath := range outputPaths {
-		wc, err := New(outputPath)
+		out, err := newOutput(outputPath, defaultType)
 		if err != nil {
-			// close already opened writers
-			for _, wc := range writeClosers {
-				if cErr := wc.Close(); cErr != nil {
-					err = multierror.Append(err, cErr)
-				}
-			}
 			return nil, err
 		}
-		writeClosers = append(writeClosers, wc)
+		resultWriters = append(resultWriters, out)
 	}
-	return &multiWriteCloser{writeClosers: writeClosers}, nil
+	return benchmark.NewMultiResultWriter(resultWriters), nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -36,12 +35,10 @@ func main() {
 	rootCmd.Flags().Int("run", 1, "current run index")
 	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
 
-	rootCmd.Flags().Bool("csv-header", false, "add csv header")
 	rootCmd.Flags().StringArrayP("output", "o", []string{"-"}, "output files (default stdout)")
 	rootCmd.Flags().Bool("json", false, "output in json format")
 	rootCmd.Flags().Bool("csv", true, "output in csv format")
 	rootCmd.MarkFlagsMutuallyExclusive("json", "csv")
-	rootCmd.MarkFlagsMutuallyExclusive("json", "csv-header")
 
 	rootCmd.Flags().String("include-filter", ".*", "regular expression to filter packages or functions")
 	rootCmd.Flags().String("exclude-filter", "^$", "regular expression to exclude packages or functions")
@@ -62,16 +59,22 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	runIndex := cli.MustGetInt(cmd, "run")
 	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
 
-	csvHeader := cli.MustGetBool(cmd, "csv-header")
 	outputPaths := cli.MustGetStringArray(cmd, "output")
-	outputJSON := cli.MustGetBool(cmd, "json")
-	outputCSV := cli.MustGetBool(cmd, "csv")
-	// if --csv is not set and --json is set, output format should be json
-	if cmd.Flags().Lookup("json").Changed && !cmd.Flags().Lookup("csv").Changed {
-		outputCSV = false
+
+	outputFormatJSON := cli.MustGetBool(cmd, "json")
+	outputFormatCSV := cli.MustGetBool(cmd, "csv")
+
+	if !outputFormatCSV && !outputFormatJSON {
+		return fmt.Errorf("either --json or --csv must be set to true")
+	}
+
+	defaultOutputFormat := "csv"
+	if outputFormatJSON {
+		defaultOutputFormat = "json"
 	}
 
 	log.Info(cli.GetBuildInfo())
+	log.Infof("default output format: %s", defaultOutputFormat)
 
 	includeRegexp := cli.MustGetString(cmd, "include-filter")
 	excludeRegexp := cli.MustGetString(cmd, "exclude-filter")
@@ -123,27 +126,12 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			log.Infof("writing output to %s", outputPath)
 		}
 	}
-	var outputWriter io.WriteCloser
-	outputWriter, err = output.NewMultiOutput(outputPaths)
+	var resultWriter benchmark.ResultWriter
+	resultWriter, err = output.New(outputPaths, defaultOutputFormat)
 	if err != nil {
 		return fmt.Errorf("failed to open output: %w", err)
 	}
-	defer outputWriter.Close()
-
-	var resultWriter benchmark.ResultWriter
-	if outputCSV {
-		resultWriter = benchmark.NewCSVResultWriter(outputWriter)
-	} else if outputJSON {
-		resultWriter = benchmark.NewJSONResultWriter(outputWriter)
-	} else {
-		return fmt.Errorf("no output format specified")
-	}
-
-	if csvWriter, ok := resultWriter.(*benchmark.CSVResultWriter); ok && csvHeader {
-		if err := csvWriter.WriteRaw(benchmark.CSVOutputHeader); err != nil {
-			return err
-		}
-	}
+	defer resultWriter.Close()
 
 	log.Infof("run index: %d", runIndex)
 

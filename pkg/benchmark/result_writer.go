@@ -1,47 +1,37 @@
 package benchmark
 
-import (
-	"encoding/csv"
-	"encoding/json"
-	"io"
-)
+import "github.com/hashicorp/go-multierror"
 
 type ResultWriter interface {
 	Write(result Result) error
+	Close() error
 }
 
-type CSVResultWriter struct {
-	writer *csv.Writer
+type multiResultWriter struct {
+	writers []ResultWriter
 }
 
-func NewCSVResultWriter(writer io.Writer) *CSVResultWriter {
-	return &CSVResultWriter{
-		writer: csv.NewWriter(writer),
+func NewMultiResultWriter(writers []ResultWriter) ResultWriter {
+	return &multiResultWriter{
+		writers: writers,
 	}
 }
 
-func (c *CSVResultWriter) Write(result Result) error {
-	return c.WriteRaw(result.Record())
-}
-
-func (c *CSVResultWriter) WriteRaw(record []string) error {
-	if err := c.writer.Write(record); err != nil {
-		return err
+func (m *multiResultWriter) Write(result Result) error {
+	for _, writer := range m.writers {
+		if err := writer.Write(result); err != nil {
+			return err
+		}
 	}
-	c.writer.Flush()
 	return nil
 }
 
-type JSONResultWriter struct {
-	encoder *json.Encoder
-}
-
-func NewJSONResultWriter(writer io.Writer) *JSONResultWriter {
-	return &JSONResultWriter{
-		encoder: json.NewEncoder(writer),
+func (m *multiResultWriter) Close() error {
+	var mErr error
+	for _, w := range m.writers {
+		if err := w.Close(); err != nil {
+			mErr = multierror.Append(mErr, err)
+		}
 	}
-}
-
-func (j *JSONResultWriter) Write(result Result) error {
-	return j.encoder.Encode(result)
+	return mErr
 }

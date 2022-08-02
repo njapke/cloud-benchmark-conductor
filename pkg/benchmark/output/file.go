@@ -9,16 +9,15 @@ type File struct {
 	osFile *os.File
 }
 
-func newFileFromPath(outputFile string) (io.WriteCloser, error) {
+func newFileWriterFromPath(outputFile string) (io.WriteCloser, error) {
+	if outputFile == "-" {
+		return &File{osFile: os.Stdout}, nil
+	}
 	outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
-	return newFileFromOSFile(outFile)
-}
-
-func newFileFromOSFile(osFile *os.File) (io.WriteCloser, error) {
-	return &File{osFile: osFile}, nil
+	return &File{osFile: outFile}, nil
 }
 
 func (f *File) Write(p []byte) (n int, err error) {
