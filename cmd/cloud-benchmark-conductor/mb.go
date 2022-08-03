@@ -47,13 +47,7 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	errGroup, ctx := errgroup.WithContext(ctx)
 	errGroup.Go(func() error {
-		return run.Microbenchmark(ctx, log, service, run.MicrobenchmarkConfig{
-			Repository:    conf.Microbenchmark.Repository,
-			V1:            conf.Microbenchmark.V1,
-			V2:            conf.Microbenchmark.V2,
-			ExcludeFilter: conf.Microbenchmark.ExcludeFilter,
-			RunIndex:      1,
-		})
+		return run.Microbenchmark(ctx, log, service, conf.Microbenchmark, 1)
 	})
 
 	if err := errGroup.Wait(); err != nil {

@@ -1,31 +1,55 @@
 package run
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"strings"
+	"text/template"
 
+	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
-type MicrobenchmarkConfig struct {
-	Repository    string
-	V1, V2        string
-	RunIndex      int
-	ExcludeFilter string
-}
-
-func (m MicrobenchmarkConfig) Cmd() string {
-	cmd := fmt.Sprintf("microbenchmark-runner --run %d --v1 %s --v2 %s --git-repository %s", m.RunIndex, m.V1, m.V2, m.Repository)
-	if m.ExcludeFilter != "" {
-		cmd += fmt.Sprintf(" --exclude-filter=\"%s\"", m.ExcludeFilter)
+func applyTemplate(tmplStr string, runIndex int) (string, error) {
+	tmpl, err := template.New("tmpl").Parse(tmplStr)
+	if err != nil {
+		return "", err
 	}
-	return cmd
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, struct{ RunIndex int }{RunIndex: runIndex})
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
-func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Service, mc MicrobenchmarkConfig) error {
-	runnerName := fmt.Sprintf("runner-%d", mc.RunIndex)
+func getMbRunnerCmd(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) (string, error) {
+	cmd := []string{
+		"microbenchmark-runner",
+		fmt.Sprintf("--run %d", runIndex),
+		fmt.Sprintf("--git-repository='%s' --v1='%s' --v2='%s'", mbConf.Repository, mbConf.V1, mbConf.V2),
+	}
+	if mbConf.ExcludeFilter != "" {
+		cmd = append(cmd, fmt.Sprintf("--exclude-filter='%s'", mbConf.ExcludeFilter))
+	}
+	if mbConf.IncludeFilter != "" {
+		cmd = append(cmd, fmt.Sprintf("--include-filter='%s'", mbConf.ExcludeFilter))
+	}
+	for _, output := range mbConf.Outputs {
+		finalOutput, err := applyTemplate(output, runIndex)
+		if err != nil {
+			return "", err
+		}
+		cmd = append(cmd, fmt.Sprintf("--output='%s'", finalOutput))
+	}
+	return strings.Join(cmd, " "), nil
+}
+
+func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Service, mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) error {
+	runnerName := fmt.Sprintf("runner-%d", runIndex)
 	log.Infof("creating instance %s...", runnerName)
 	instance, err := service.CreateInstance(ctx, runnerName)
 	if err != nil {
@@ -38,5 +62,10 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Ser
 	if err != nil {
 		return err
 	}
-	return instance.RunWithLog(ctx, log, mc.Cmd())
+	cmd, err := getMbRunnerCmd(mbConf, runIndex)
+	if err != nil {
+		return err
+	}
+	log.Infof("running: %s", cmd)
+	return instance.RunWithLog(ctx, log, cmd)
 }

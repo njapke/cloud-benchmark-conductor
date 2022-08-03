@@ -85,14 +85,14 @@ func newOutput(ctx context.Context, outputPath string, defaultType string) (*Out
 	if o.chunked {
 		chunkFn := params.Get("new-chunk-fn")
 		switch chunkFn {
+		case "no-chunk":
+			o.newChunkFn = NoChunkFn
 		case "suite":
 			o.newChunkFn = SuiteChunkFn
 		case "benchFn":
 			o.newChunkFn = BenchFnChunkFn
-		case "no-chunk":
-			fallthrough
 		default:
-			o.newChunkFn = NoChunkFn
+			o.newChunkFn = BenchFnChunkFn
 		}
 	}
 

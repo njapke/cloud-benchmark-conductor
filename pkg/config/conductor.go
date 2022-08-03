@@ -15,7 +15,9 @@ import (
 type ConductorMicrobenchmarkConfig struct {
 	Repository    string
 	V1, V2        string
-	ExcludeFilter string `yaml:"excludeFilter"`
+	ExcludeFilter string   `yaml:"excludeFilter"`
+	IncludeFilter string   `yaml:"includeFilter"`
+	Outputs       []string `yaml:"outputs"`
 }
 
 type ConductorConfig struct {
@@ -42,6 +44,8 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			V1:            viper.GetString("microbenchmark.v1"),
 			V2:            viper.GetString("microbenchmark.v2"),
 			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
+			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
+			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
 		},
 	}
 
@@ -61,6 +65,17 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 	if c.SSHPrivateKey == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing ssh private key"))
 	}
+
+	if c.Microbenchmark.Repository == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark repository"))
+	}
+	if c.Microbenchmark.V1 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v1"))
+	}
+	if c.Microbenchmark.V2 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v2"))
+	}
+
 	if confErr != nil {
 		return nil, confErr
 	}
