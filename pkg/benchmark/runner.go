@@ -2,6 +2,7 @@ package benchmark
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -92,7 +93,7 @@ func (r Results) Records() [][]string {
 	return res
 }
 
-func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, version, run, suite int) error {
+func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, f Function, version, run, suite int) error {
 	args := []string{
 		"test",
 		"-run=^$",
@@ -105,7 +106,7 @@ func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, vers
 		"./" + filepath.Dir(f.FileName),
 	}
 
-	cmd := exec.Command("go", args...)
+	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = f.RootDirectory
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	pipeRead, pipeWrite := io.Pipe()
@@ -158,7 +159,7 @@ func RunFunction(log *logger.Logger, resultWriter ResultWriter, f Function, vers
 	return nil
 }
 
-func RunVersionedFunction(log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
+func RunVersionedFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2
 
@@ -169,19 +170,19 @@ func RunVersionedFunction(log *logger.Logger, resultWriter ResultWriter, vFuncti
 	}
 
 	log.Infof("  |--> running[v%d]: %s", aVersion, a.FileName)
-	if err := RunFunction(log, resultWriter, a, aVersion, run, suite); err != nil {
+	if err := RunFunction(ctx, log, resultWriter, a, aVersion, run, suite); err != nil {
 		return err
 	}
 
 	log.Infof("  |--> running[v%d]: %s", bVersion, b.FileName)
-	if err := RunFunction(log, resultWriter, b, bVersion, run, suite); err != nil {
+	if err := RunFunction(ctx, log, resultWriter, b, bVersion, run, suite); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func RunSuite(log *logger.Logger, resultWriter ResultWriter, fns VersionedFunctions, run, suite int) error {
+func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, fns VersionedFunctions, run, suite int) error {
 	newFns := make(VersionedFunctions, len(fns))
 	copy(newFns, fns)
 
@@ -192,7 +193,7 @@ func RunSuite(log *logger.Logger, resultWriter ResultWriter, fns VersionedFuncti
 
 	for _, function := range newFns {
 		log.Infof("--| benchmarking: %s", function.String())
-		err := RunVersionedFunction(log, resultWriter, function, run, suite)
+		err := RunVersionedFunction(ctx, log, resultWriter, function, run, suite)
 		if err != nil {
 			return err
 		}

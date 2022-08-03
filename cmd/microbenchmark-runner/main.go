@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
+	"syscall"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/benchmark/output"
@@ -126,8 +130,15 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			log.Infof("writing output to %s", outputPath)
 		}
 	}
+
+	// maximum runtime: 30 minutes
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	defer cancel()
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	var resultWriter benchmark.ResultWriter
-	resultWriter, err = output.New(outputPaths, defaultOutputFormat)
+	resultWriter, err = output.New(ctx, outputPaths, defaultOutputFormat)
 	if err != nil {
 		return fmt.Errorf("failed to open output: %w", err)
 	}
@@ -137,7 +148,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := benchmark.RunSuite(log, resultWriter, versionedFunctions, runIndex, s)
+		err := benchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
 		if err != nil {
 			return err
 		}
