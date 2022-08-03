@@ -16,6 +16,7 @@ microbenchmark:
   v1: v1
   v2: v2
   outputs:
-    - gs://mb-test-results/go-benchmark-tests-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+#    - gs://mb-test-results/go-benchmark-tests-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
     - /tmp/go-benchmark-tests.csv
+  includeFilter: "^foo.*$"
 #  excludeFilter: "^chi.*$"
