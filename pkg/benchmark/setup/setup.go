@@ -11,14 +11,49 @@ import (
 	cp "github.com/otiai10/copy"
 )
 
-func checkoutBranch(repo *git.Repository, branchName string) error {
+func checkRefIfExists(refType string, repo *git.Repository, tagName string) (bool, error) {
+	var refName plumbing.ReferenceName
+	if refType == "tag" {
+		refName = plumbing.NewTagReferenceName(tagName)
+	} else if refType == "branch" {
+		refName = plumbing.NewBranchReferenceName(tagName)
+	} else {
+		return false, fmt.Errorf("unknown ref type: %s", refType)
+	}
+	_, err := repo.Reference(refName, false)
+	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func checkoutRef(repo *git.Repository, refName string) error {
 	repoTree, err := repo.Worktree()
 	if err != nil {
 		return err
 	}
-	err = repoTree.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(branchName),
-	})
+	checkoutOptions := &git.CheckoutOptions{}
+	isTag, err := checkRefIfExists("tag", repo, refName)
+	if err != nil {
+		return err
+	}
+	if isTag {
+		checkoutOptions.Branch = plumbing.NewTagReferenceName(refName)
+	} else {
+		isBranch, err := checkRefIfExists("branch", repo, refName)
+		if err != nil {
+			return err
+		}
+		if isBranch {
+			checkoutOptions.Branch = plumbing.NewBranchReferenceName(refName)
+		} else {
+			checkoutOptions.Hash = plumbing.NewHash(refName)
+		}
+	}
+	err = repoTree.Checkout(checkoutOptions)
 	if err != nil {
 		return err
 	}
@@ -54,11 +89,11 @@ func SourcePathsFromGitRepository(log *logger.Logger, benchDir, repoUrl, refV1, 
 	}
 
 	log.Infof("checking out v1: %s", refV1)
-	if err := checkoutBranch(repoV1, refV1); err != nil {
+	if err := checkoutRef(repoV1, refV1); err != nil {
 		return "", "", err
 	}
 	log.Infof("checking out v2: %s", refV2)
-	if err := checkoutBranch(repoV2, refV2); err != nil {
+	if err := checkoutRef(repoV2, refV2); err != nil {
 		return "", "", err
 	}
 	return sourcePathV1, sourcePathV2, nil

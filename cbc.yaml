@@ -12,7 +12,7 @@ sshPrivateKey: |
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
 microbenchmark:
-  repository: https://github.com/christophwitzko/flight-booking-service.git
-  v1: main
-  v2: main
-  excludeFilter: "^chi.*$"
+  repository: https://github.com/christophwitzko/go-benchmark-tests.git
+  v1: v1
+  v2: v2
+#  excludeFilter: "^chi.*$"
