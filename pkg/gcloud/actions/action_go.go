@@ -38,7 +38,7 @@ func getGoVersion(ctx context.Context, instance *gcloud.Instance) (string, error
 func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) error {
 	lp := instance.LogPrefix() + "[" + a.Name() + "]"
 
-	a.log.Infof("%s go version: %s...", lp, instance.Config.GoVersion)
+	a.log.Infof("%s version: %s", lp, instance.Config.GoVersion)
 	foundGoVersion, err := getGoVersion(ctx, instance)
 	if err != nil {
 		return err
