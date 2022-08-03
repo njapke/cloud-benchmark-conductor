@@ -34,6 +34,7 @@ func (c *csvResultEncoder) Encode(result benchmark.Result) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		c.hasWrittenHeader = true
 	}
 	if err := c.csvWriter.Write(result.Record()); err != nil {
 		return nil, err

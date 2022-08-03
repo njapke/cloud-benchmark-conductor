@@ -10,6 +10,7 @@ type WriterFactory func(config *Output) (io.WriteCloser, error)
 var writers = map[string]WriterFactory{
 	"file": newFileWriter,
 	"gcs":  newGCSWriter,
+	"gs":   newGCSWriter,
 }
 
 func IsValidSchema(schema string) bool {
