@@ -47,12 +47,18 @@ func main() {
 	rootCmd.Flags().String("include-filter", ".*", "regular expression to filter packages or functions")
 	rootCmd.Flags().String("exclude-filter", "^$", "regular expression to exclude packages or functions")
 
+	rootCmd.Flags().BoolP("version", "v", false, "print build information")
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
+	if cli.MustGetBool(cmd, "version") {
+		fmt.Println(cli.GetBuildInfo())
+		return nil
+	}
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
