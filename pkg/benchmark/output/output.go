@@ -72,6 +72,10 @@ func newOutput(outputPath string, defaultType string) (*Output, error) {
 		chunked:    params.Get("chunked") == "true",
 	}
 
+	if o.chunked && o.path == "-" {
+		return nil, fmt.Errorf("cannot chunk to stdout")
+	}
+
 	if o.chunked {
 		chunkFn := params.Get("new-chunk-fn")
 		switch chunkFn {
