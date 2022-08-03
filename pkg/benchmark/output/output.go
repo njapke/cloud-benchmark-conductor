@@ -1,6 +1,7 @@
 package output
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -32,8 +33,11 @@ func BenchFnChunkFn(lastResult *benchmark.Result, newResult *benchmark.Result) b
 }
 
 type Output struct {
+	Context context.Context
+
 	Schema     string
 	Type       string
+	Host       string
 	path       string
 	Parameters url.Values
 
@@ -47,7 +51,7 @@ type Output struct {
 	lastResult *benchmark.Result
 }
 
-func newOutput(outputPath string, defaultType string) (*Output, error) {
+func newOutput(ctx context.Context, outputPath string, defaultType string) (*Output, error) {
 	outputType := defaultType
 	parsedPath, err := url.Parse(outputPath)
 	if err != nil {
@@ -65,8 +69,10 @@ func newOutput(outputPath string, defaultType string) (*Output, error) {
 	}
 	params := parsedPath.Query()
 	o := &Output{
+		Context:    ctx,
 		Schema:     schema,
 		Type:       outputType,
+		Host:       parsedPath.Host,
 		path:       parsedPath.Path,
 		Parameters: params,
 		chunked:    params.Get("chunked") == "true",
@@ -151,15 +157,18 @@ func (o *Output) Write(result benchmark.Result) error {
 func (o *Output) Close() error {
 	o.writeMutex.Lock()
 	defer o.writeMutex.Unlock()
-	err := o.writer.Close()
-	o.writer = nil
-	return err
+	if o.writer != nil {
+		err := o.writer.Close()
+		o.writer = nil
+		return err
+	}
+	return nil
 }
 
-func New(outputPaths []string, defaultType string) (benchmark.ResultWriter, error) {
+func New(ctx context.Context, outputPaths []string, defaultType string) (benchmark.ResultWriter, error) {
 	resultWriters := make([]benchmark.ResultWriter, 0, len(outputPaths))
 	for _, outputPath := range outputPaths {
-		out, err := newOutput(outputPath, defaultType)
+		out, err := newOutput(ctx, outputPath, defaultType)
 		if err != nil {
 			return nil, err
 		}

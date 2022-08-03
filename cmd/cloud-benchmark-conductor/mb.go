@@ -34,7 +34,7 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	defer service.Close()
 
-	// maximum runtime: 10 minutes
+	// maximum runtime: 30 minutes
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
