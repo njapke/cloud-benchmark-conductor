@@ -9,11 +9,11 @@ type File struct {
 	osFile *os.File
 }
 
-func newFileWriterFromPath(outputFile string) (io.WriteCloser, error) {
-	if outputFile == "-" {
+func newFileWriter(config *Output) (io.WriteCloser, error) {
+	if config.Path == "-" {
 		return &File{osFile: os.Stdout}, nil
 	}
-	outFile, err := os.OpenFile(outputFile, os.O_CREATE|os.O_WRONLY, 0644)
+	outFile, err := os.OpenFile(config.Path, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}

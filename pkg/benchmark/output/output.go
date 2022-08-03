@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/url"
 	"path/filepath"
+	"sync"
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 )
@@ -16,6 +17,7 @@ type Output struct {
 	Parameters url.Values
 	writer     io.WriteCloser
 	encoder    ResultEncoder
+	writeMutex sync.Mutex
 }
 
 func newOutput(outputPath string, defaultType string) (*Output, error) {
@@ -31,6 +33,9 @@ func newOutput(outputPath string, defaultType string) (*Output, error) {
 	if schema == "" {
 		schema = "file"
 	}
+	if !IsValidSchema(schema) {
+		return nil, fmt.Errorf("unsupported output schema: %s", schema)
+	}
 	o := &Output{
 		Schema:     schema,
 		Path:       parsedPath.Path,
@@ -38,15 +43,7 @@ func newOutput(outputPath string, defaultType string) (*Output, error) {
 		Parameters: parsedPath.Query(),
 	}
 
-	// setup encoder
-	switch o.Type {
-	case "json":
-		o.encoder, err = NewJSONResultEncoder(o)
-	case "csv":
-		o.encoder, err = NewCSVResultEncoder(o)
-	default:
-		err = fmt.Errorf("unsupported output type: %s", o.Type)
-	}
+	o.encoder, err = NewEncoder(o)
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +56,13 @@ func (o *Output) open() error {
 		return nil
 	}
 	var err error
-	switch o.Schema {
-	case "file":
-		o.writer, err = newFileWriterFromPath(o.Path)
-	default:
-		err = fmt.Errorf("unsupported output schema: %s", o.Schema)
-	}
+	o.writer, err = NewWriter(o)
 	return err
 }
 
 func (o *Output) Write(result benchmark.Result) error {
+	o.writeMutex.Lock()
+	defer o.writeMutex.Unlock()
 	if err := o.open(); err != nil {
 		return err
 	}
@@ -81,6 +75,8 @@ func (o *Output) Write(result benchmark.Result) error {
 }
 
 func (o *Output) Close() error {
+	o.writeMutex.Lock()
+	defer o.writeMutex.Unlock()
 	err := o.writer.Close()
 	o.writer = nil
 	return err
