@@ -23,10 +23,31 @@ func (a *actionInstallGo) Name() string {
 
 const PATHWithGoBin = `PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/go/bin"`
 
+func getGoVersion(ctx context.Context, instance *gcloud.Instance) (string, error) {
+	stdout, stderr, err := instance.Run(ctx, "go version || true")
+	if err != nil {
+		return "", fmt.Errorf("failed to run go version: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
+	}
+	goVersion, _, found := strings.Cut(strings.TrimPrefix(stdout, "go version go"), " ")
+	if !found {
+		return stdout, nil
+	}
+	return goVersion, nil
+}
+
 func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) error {
 	lp := instance.LogPrefix() + "[" + a.Name() + "]"
 
 	a.log.Infof("%s go version: %s...", lp, instance.Config.GoVersion)
+	foundGoVersion, err := getGoVersion(ctx, instance)
+	if err != nil {
+		return err
+	}
+	if foundGoVersion == instance.Config.GoVersion {
+		a.log.Infof("%s go is already installed", lp)
+		return nil
+	}
+
 	a.log.Infof("%s downloading...", lp)
 	goDownloadUrl := fmt.Sprintf("https://go.dev/dl/go%s.linux-amd64.tar.gz", instance.Config.GoVersion)
 	stdout, stderr, err := instance.Run(ctx, fmt.Sprintf("curl -SL -o go.tgz %s", goDownloadUrl))
@@ -35,7 +56,7 @@ func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) er
 	}
 
 	a.log.Infof("%s installing...", lp)
-	stdout, stderr, err = instance.Run(ctx, "sudo tar -C /usr/local -xzf go.tgz")
+	stdout, stderr, err = instance.Run(ctx, "sudo rm -rf  /usr/local/go && sudo tar -C /usr/local -xzf go.tgz")
 	if err != nil {
 		return fmt.Errorf("failed to install go: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}
@@ -49,13 +70,15 @@ func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) er
 	}
 
 	a.log.Infof("%s verifying installation...", lp)
-	stdout, stderr, err = instance.Run(ctx, "go version")
+
+	foundGoVersion, err = getGoVersion(ctx, instance)
 	if err != nil {
-		return fmt.Errorf("failed to run go version: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
+		return err
 	}
-	if !strings.Contains(stdout, fmt.Sprintf("go version go%s", instance.Config.GoVersion)) {
-		return fmt.Errorf("go version did not match: %s", stdout)
+	if foundGoVersion != instance.Config.GoVersion {
+		return fmt.Errorf("go version did not match: %s", foundGoVersion)
 	}
+
 	a.log.Infof("%s go%s installed successfully", lp, instance.Config.GoVersion)
 	return nil
 }
