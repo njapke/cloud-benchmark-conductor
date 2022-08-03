@@ -1,5 +1,16 @@
 .idea/
 analysis/.ipynb_checkpoints/
+
 google-application-credentials.json
 .envrc
+
 pkg/assets/mb-runner_linux_amd64
+_scripts_from_paper/
+
+cloud-benchmark-conductor
+!cloud-benchmark-conductor/
+microbenchmark-runner
+!microbenchmark-runner/
+
+*.csv
+test-key

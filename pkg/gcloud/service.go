@@ -147,7 +147,8 @@ func (s *Service) CreateInstance(ctx context.Context, name string) (*Instance, e
 	if err == nil {
 		return instance, nil
 	}
-	if gErr, ok := errors.Unwrap(err).(*googleapi.Error); !ok || gErr.Code != 404 {
+	var gErr *googleapi.Error
+	if !errors.As(err, &gErr) || gErr.Code != 404 {
 		return nil, err
 	}
 
@@ -266,7 +267,8 @@ func (s *Service) EnsureFirewallRules(ctx context.Context) error {
 		// firewall already exists, nothing to do
 		return nil
 	}
-	if gErr, ok := errors.Unwrap(err).(*googleapi.Error); !ok || gErr.Code != 404 {
+	var gErr *googleapi.Error
+	if !errors.As(err, &gErr) || gErr.Code != 404 {
 		return err
 	}
 
@@ -310,7 +312,8 @@ func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
 	}
 
 	// ignore 404 errors, as the firewall may not exist
-	if gErr, ok := errors.Unwrap(err).(*googleapi.Error); !ok || gErr.Code != 404 {
+	var gErr *googleapi.Error
+	if !errors.As(err, &gErr) || gErr.Code != 404 {
 		mErr = multierror.Append(mErr, err)
 	}
 	return deletedResources, mErr
