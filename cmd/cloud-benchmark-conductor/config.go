@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -24,10 +24,5 @@ func configRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cfgStr, err := yaml.Marshal(c)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("# cloud benchmark conductor config\n%s", cfgStr)
-	return nil
+	return yaml.NewEncoder(os.Stdout).Encode(c)
 }

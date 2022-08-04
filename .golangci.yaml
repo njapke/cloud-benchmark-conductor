@@ -1,8 +1,10 @@
 linters:
   enable:
     - errorlint
+    - forbidigo
     - gocritic
     - gofumpt
+    - goimports
     - misspell
     - revive
     - unconvert
