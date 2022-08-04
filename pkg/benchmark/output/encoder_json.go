@@ -12,7 +12,7 @@ type jsonResultEncoder struct {
 	encoder *json.Encoder
 }
 
-func newJsonResultEncoder(config *Output) (ResultEncoder, error) {
+func newJSONResultEncoder(config *Output) (ResultEncoder, error) {
 	buffer := &bytes.Buffer{}
 	return &jsonResultEncoder{
 		buffer:  buffer,

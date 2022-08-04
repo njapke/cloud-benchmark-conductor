@@ -63,7 +63,7 @@ func (s *Service) getDefaultServiceAccount() string {
 
 func resolveProjectNumber(it *resourcemanager.ProjectIterator) (string, error) {
 	p, err := it.Next()
-	if err == iterator.Done {
+	if errors.Is(err, iterator.Done) {
 		return "", fmt.Errorf("no project found")
 	}
 	if err != nil {
@@ -223,7 +223,7 @@ func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
 	var delWg sync.WaitGroup
 	for {
 		instance, err := instances.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {

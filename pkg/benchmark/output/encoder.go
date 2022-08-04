@@ -13,7 +13,7 @@ type ResultEncoder interface {
 type EncoderFactory func(config *Output) (ResultEncoder, error)
 
 var encoders = map[string]EncoderFactory{
-	"json": newJsonResultEncoder,
+	"json": newJSONResultEncoder,
 	"csv":  newCsvResultEncoder,
 }
 

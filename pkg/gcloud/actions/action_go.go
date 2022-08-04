@@ -49,8 +49,8 @@ func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) er
 	}
 
 	a.log.Infof("%s downloading...", lp)
-	goDownloadUrl := fmt.Sprintf("https://go.dev/dl/go%s.linux-amd64.tar.gz", instance.Config.GoVersion)
-	stdout, stderr, err := instance.Run(ctx, fmt.Sprintf("curl -SL -o go.tgz %s", goDownloadUrl))
+	goDownloadURL := fmt.Sprintf("https://go.dev/dl/go%s.linux-amd64.tar.gz", instance.Config.GoVersion)
+	stdout, stderr, err := instance.Run(ctx, fmt.Sprintf("curl -SL -o go.tgz %s", goDownloadURL))
 	if err != nil {
 		return fmt.Errorf("failed to download go: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,7 +19,8 @@ func InitConfig(cmd *cobra.Command, defaultConfigFile string) error {
 	viper.SetConfigType("yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var viperConfigNotFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &viperConfigNotFound) {
 			return err
 		}
 	}

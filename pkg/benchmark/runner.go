@@ -16,11 +16,15 @@ import (
 	"golang.org/x/perf/benchfmt"
 )
 
-const Timeout = 60
-const ExecutionCount = 5
+const (
+	Timeout        = 60
+	ExecutionCount = 5
+)
 
-var timeoutArg = fmt.Sprintf("-timeout=%ds", Timeout)
-var countArg = fmt.Sprintf("-count=%d", ExecutionCount)
+var (
+	timeoutArg = fmt.Sprintf("-timeout=%ds", Timeout)
+	countArg   = fmt.Sprintf("-count=%d", ExecutionCount)
+)
 
 func init() {
 	rand.Seed(time.Now().Unix())

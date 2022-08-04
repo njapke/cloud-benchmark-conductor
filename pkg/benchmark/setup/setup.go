@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,16 +14,17 @@ import (
 
 func checkRefIfExists(refType string, repo *git.Repository, tagName string) (bool, error) {
 	var refName plumbing.ReferenceName
-	if refType == "tag" {
+	switch refType {
+	case "tag":
 		refName = plumbing.NewTagReferenceName(tagName)
-	} else if refType == "branch" {
+	case "branch":
 		refName = plumbing.NewBranchReferenceName(tagName)
-	} else {
+	default:
 		return false, fmt.Errorf("unknown ref type: %s", refType)
 	}
 	_, err := repo.Reference(refName, false)
 	if err != nil {
-		if err == plumbing.ErrReferenceNotFound {
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
 			return false, nil
 		}
 		return false, err
@@ -60,23 +62,23 @@ func checkoutRef(repo *git.Repository, refName string) error {
 	return nil
 }
 
-func SourcePathsFromGitRepository(log *logger.Logger, benchDir, repoUrl, refV1, refV2 string) (string, string, error) {
+func SourcePathsFromGitRepository(log *logger.Logger, benchDir, repoURL, refV1, refV2 string) (string, string, error) {
 	if err := os.RemoveAll(benchDir); err != nil {
 		return "", "", err
 	}
-	if err := os.MkdirAll(benchDir, 0755); err != nil {
+	if err := os.MkdirAll(benchDir, 0o755); err != nil {
 		return "", "", err
 	}
 
 	sourcePathV1 := path.Join(benchDir, "v1")
 	sourcePathV2 := path.Join(benchDir, "v2")
-	log.Infof("cloning %s to %s", repoUrl, sourcePathV1)
+	log.Infof("cloning %s to %s", repoURL, sourcePathV1)
 	repoV1, err := git.PlainClone(sourcePathV1, false, &git.CloneOptions{
-		URL:  repoUrl,
+		URL:  repoURL,
 		Tags: git.AllTags,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to clone %s to %s: %w", repoUrl, sourcePathV1, err)
+		return "", "", fmt.Errorf("failed to clone %s to %s: %w", repoURL, sourcePathV1, err)
 	}
 
 	log.Infof("duplicating repository to %s", sourcePathV2)

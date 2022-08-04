@@ -1,6 +1,7 @@
 package output
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -29,7 +30,7 @@ func newGCSWriter(config *Output) (io.WriteCloser, error) {
 	_, err = bucket.Attrs(config.Context)
 	if err != nil {
 		_ = client.Close()
-		if err == storage.ErrBucketNotExist {
+		if errors.Is(err, storage.ErrBucketNotExist) {
 			return nil, fmt.Errorf("bucket %s does not exist", config.Host)
 		}
 		return nil, err

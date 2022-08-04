@@ -14,7 +14,7 @@ func newFileWriter(config *Output) (io.WriteCloser, error) {
 	if path == "-" {
 		return &fileWriter{osFile: os.Stdout}, nil
 	}
-	outFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0644)
+	outFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return nil, err
 	}

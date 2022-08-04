@@ -38,8 +38,7 @@ type astVisitor struct {
 }
 
 func (a *astVisitor) Visit(node ast.Node) (w ast.Visitor) {
-	switch node := node.(type) {
-	case *ast.FuncDecl:
+	if node, ok := node.(*ast.FuncDecl); ok {
 		fnName := node.Name.Name
 		if !strings.HasPrefix(fnName, "Benchmark") {
 			return nil

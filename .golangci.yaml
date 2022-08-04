@@ -1,0 +1,10 @@
+linters:
+  enable:
+    - errorlint
+    - gocritic
+    - gofumpt
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - wastedassign
