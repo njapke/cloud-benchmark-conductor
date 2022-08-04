@@ -20,14 +20,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const toolName = "cloud-benchmark-conductor"
+const (
+	toolName       = "cloud-benchmark-conductor"
+	instancePrefix = "cbc-"
+)
 
 func prefixName(n string) string {
-	return fmt.Sprintf("cloud-benchmark-conductor-%s", unprefixName(n))
+	return instancePrefix + unprefixName(n)
 }
 
 func unprefixName(n string) string {
-	return strings.TrimPrefix(n, toolName+"-")
+	return strings.TrimPrefix(n, instancePrefix)
 }
 
 type Service struct {
@@ -136,7 +139,7 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 	}, nil
 }
 
-func (s *Service) CreateInstance(ctx context.Context, name string) (*Instance, error) {
+func (s *Service) GetOrCreateInstance(ctx context.Context, name string) (*Instance, error) {
 	latestUbuntu, err := s.getLatestUbuntuImage(ctx)
 	if err != nil {
 		return nil, err

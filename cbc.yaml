@@ -11,12 +11,15 @@ sshPrivateKey: |
   AAAECyCqtlSb/bjV0Jgv+ZyHMUM77ZPg7fmFW2Is8gkDXhwJMVHWdgPhyKA/ci2RAWuNsK
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
+goVersion: 1.19
 microbenchmark:
+  name: go-benchmark-tests
   repository: https://github.com/christophwitzko/go-benchmark-tests.git
+  runs: 3
   v1: v1
   v2: v2
   outputs:
-#    - gs://mb-test-results/go-benchmark-tests-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-    - /tmp/go-benchmark-tests.csv
+#    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?chunked=true&new-chunk-fn=suite&no-csv-header=true
+    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?no-csv-header=true
   includeFilter: "^foo.*$"
 #  excludeFilter: "^chi.*$"

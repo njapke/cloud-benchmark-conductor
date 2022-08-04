@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"golang.org/x/crypto/ssh"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
@@ -129,21 +128,11 @@ func (i *Instance) Reconnect(ctx context.Context) error {
 	return err
 }
 
-func (i *Instance) RunWithLog(ctx context.Context, logger *logger.Logger, cmd string) error {
+func (i *Instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
-	lp := i.LogPrefix()
-	shortCmd, _, _ := strings.Cut(cmd, " ")
-	return i.sshClient.Run(ctx, func(out string, err string) {
-		ioType := "OUT"
-		ioVal := out
-		if out == "" {
-			ioType = "ERR"
-			ioVal = err
-		}
-		logger.Printf("%s |%s|%s| %s", lp, shortCmd, ioType, ioVal)
-	}, cmd)
+	return i.sshClient.Run(ctx, logger, cmd)
 }
 
 func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) {

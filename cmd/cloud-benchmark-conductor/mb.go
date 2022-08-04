@@ -45,10 +45,14 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	log.Infof("setting up %d instances...", conf.Microbenchmark.Runs)
 	errGroup, ctx := errgroup.WithContext(ctx)
-	errGroup.Go(func() error {
-		return run.Microbenchmark(ctx, log, service, conf.Microbenchmark, 1)
-	})
+	for runIndex := 1; runIndex <= conf.Microbenchmark.Runs; runIndex++ {
+		runIndex := runIndex
+		errGroup.Go(func() error {
+			return run.Microbenchmark(ctx, log, service, conf.Microbenchmark, runIndex)
+		})
+	}
 
 	if err := errGroup.Wait(); err != nil {
 		return err
