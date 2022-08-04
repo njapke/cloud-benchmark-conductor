@@ -26,10 +26,6 @@ var (
 	countArg   = fmt.Sprintf("-count=%d", ExecutionCount)
 )
 
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
 type Result struct {
 	Function   Function
 	Iterations int
@@ -163,12 +159,12 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 	return nil
 }
 
-func RunVersionedFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
+func RunVersionedFunction(ctx context.Context, rng *rand.Rand, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2
 
 	// randomly change execution order
-	if rand.Intn(2) == 0 {
+	if rng.Intn(2) == 0 {
 		a, b = vFunction.V2, vFunction.V1
 		aVersion, bVersion = 2, 1
 	}
@@ -190,14 +186,16 @@ func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter
 	newFns := make(VersionedFunctions, len(fns))
 	copy(newFns, fns)
 
+	rng := rand.New(rand.NewSource(time.Now().Unix()))
+
 	// shuffle execution order
-	rand.Shuffle(len(newFns), func(i, j int) {
+	rng.Shuffle(len(newFns), func(i, j int) {
 		newFns[i], newFns[j] = newFns[j], newFns[i]
 	})
 
 	for _, function := range newFns {
 		log.Infof("--| benchmarking: %s", function.String())
-		err := RunVersionedFunction(ctx, log, resultWriter, function, run, suite)
+		err := RunVersionedFunction(ctx, rng, log, resultWriter, function, run, suite)
 		if err != nil {
 			return err
 		}

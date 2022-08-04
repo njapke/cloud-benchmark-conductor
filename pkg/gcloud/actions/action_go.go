@@ -65,7 +65,8 @@ func (a *actionInstallGo) Run(ctx context.Context, instance *gcloud.Instance) er
 		return fmt.Errorf("failed to add go to PATH: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}
 
-	if err := instance.Reconnect(ctx); err != nil {
+	err = instance.Reconnect(ctx)
+	if err != nil {
 		return fmt.Errorf("failed to reconnect: %w", err)
 	}
 

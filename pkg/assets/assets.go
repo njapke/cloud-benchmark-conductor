@@ -8,10 +8,9 @@ import (
 
 //go:embed mb-runner_linux_amd64
 var MicrobenchmarkRunnerBinaryLinuxAmd64 []byte
-var MicrobenchmarkRunnerBinaryLinuxAmd64Hash string
 
-func init() {
+func GetMicrobenchmarkRunnerBinaryLinuxAmd64Hash() string {
 	hash := sha512.New()
 	hash.Write(MicrobenchmarkRunnerBinaryLinuxAmd64)
-	MicrobenchmarkRunnerBinaryLinuxAmd64Hash = hex.EncodeToString(hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil))
 }

@@ -11,20 +11,20 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 )
 
-type NewChunkFunc func(lastResult *benchmark.Result, newResult *benchmark.Result) bool
+type NewChunkFunc func(lastResult, newResult *benchmark.Result) bool
 
-func NoChunkFn(lastResult *benchmark.Result, newResult *benchmark.Result) bool {
+func NoChunkFn(lastResult, newResult *benchmark.Result) bool {
 	return false
 }
 
-func SuiteChunkFn(lastResult *benchmark.Result, newResult *benchmark.Result) bool {
+func SuiteChunkFn(lastResult, newResult *benchmark.Result) bool {
 	if lastResult == nil {
 		return true
 	}
 	return lastResult.S != newResult.S
 }
 
-func BenchFnChunkFn(lastResult *benchmark.Result, newResult *benchmark.Result) bool {
+func BenchFnChunkFn(lastResult, newResult *benchmark.Result) bool {
 	// always chunk a new suite run
 	if SuiteChunkFn(lastResult, newResult) {
 		return true
@@ -46,12 +46,12 @@ type Output struct {
 	writeMutex sync.Mutex
 
 	chunked    bool
-	newChunkFn func(previous *benchmark.Result, current *benchmark.Result) bool
+	newChunkFn func(previous, current *benchmark.Result) bool
 	chunkIndex uint64
 	lastResult *benchmark.Result
 }
 
-func newOutput(ctx context.Context, outputPath string, defaultType string) (*Output, error) {
+func newOutput(ctx context.Context, outputPath, defaultType string) (*Output, error) {
 	outputType := defaultType
 	parsedPath, err := url.Parse(outputPath)
 	if err != nil {

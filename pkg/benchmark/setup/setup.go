@@ -44,22 +44,18 @@ func checkoutRef(repo *git.Repository, refName string) error {
 	}
 	if isTag {
 		checkoutOptions.Branch = plumbing.NewTagReferenceName(refName)
-	} else {
-		isBranch, err := checkRefIfExists("branch", repo, refName)
-		if err != nil {
-			return err
-		}
-		if isBranch {
-			checkoutOptions.Branch = plumbing.NewBranchReferenceName(refName)
-		} else {
-			checkoutOptions.Hash = plumbing.NewHash(refName)
-		}
+		return repoTree.Checkout(checkoutOptions)
 	}
-	err = repoTree.Checkout(checkoutOptions)
+	isBranch, err := checkRefIfExists("branch", repo, refName)
 	if err != nil {
 		return err
 	}
-	return nil
+	if isBranch {
+		checkoutOptions.Branch = plumbing.NewBranchReferenceName(refName)
+	} else {
+		checkoutOptions.Hash = plumbing.NewHash(refName)
+	}
+	return repoTree.Checkout(checkoutOptions)
 }
 
 func SourcePathsFromGitRepository(log *logger.Logger, benchDir, repoURL, refV1, refV2 string) (string, string, error) {
@@ -82,7 +78,8 @@ func SourcePathsFromGitRepository(log *logger.Logger, benchDir, repoURL, refV1, 
 	}
 
 	log.Infof("duplicating repository to %s", sourcePathV2)
-	if err := cp.Copy(sourcePathV1, sourcePathV2); err != nil {
+	err = cp.Copy(sourcePathV1, sourcePathV2)
+	if err != nil {
 		return "", "", fmt.Errorf("failed to copy %s to %s: %w", sourcePathV1, sourcePathV2, err)
 	}
 	repoV2, err := git.PlainOpen(sourcePathV2)

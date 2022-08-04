@@ -76,7 +76,7 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Ser
 		return err
 	}
 	log.Infof("[%s] running: %s", runnerName, cmd)
-	return instance.RunWithLogger(ctx, func(stdout string, stderr string) {
+	return instance.RunWithLogger(ctx, func(stdout, stderr string) {
 		log.Infof("[%s] %s%s", runnerName, stdout, stderr)
 	}, cmd)
 }

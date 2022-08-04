@@ -39,7 +39,7 @@ func (a *actionInstallMicrobenchmarkRunner) Run(ctx context.Context, instance *g
 	if err != nil {
 		return err
 	}
-	if foundMbHash == assets.MicrobenchmarkRunnerBinaryLinuxAmd64Hash {
+	if foundMbHash == assets.GetMicrobenchmarkRunnerBinaryLinuxAmd64Hash() {
 		a.log.Infof("%s microbenchmark-runner is already installed", lp)
 		return nil
 	}

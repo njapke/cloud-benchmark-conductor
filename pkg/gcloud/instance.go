@@ -23,18 +23,22 @@ type Instance struct {
 	sshClientMutex   sync.Mutex
 }
 
+// Name returns the instance name without the prefix
 func (i *Instance) Name() string {
-	return unprefixName(*i.internalInstance.Name)
+	return trimPrefixName(*i.internalInstance.Name)
 }
 
+// ExternalIP returns the external IP of the instance
 func (i *Instance) ExternalIP() string {
 	return *i.internalInstance.NetworkInterfaces[0].AccessConfigs[0].NatIP
 }
 
+// SSHEndpoint returns the public SSH endpoint of the instance
 func (i *Instance) SSHEndpoint() string {
 	return i.ExternalIP() + ":22"
 }
 
+// LogPrefix returns the a log prefix that contains the instance name
 func (i *Instance) LogPrefix() string {
 	return fmt.Sprintf("[%s]", i.Name())
 }
@@ -128,6 +132,7 @@ func (i *Instance) Reconnect(ctx context.Context) error {
 	return err
 }
 
+// RunWithLogger runs a command on the instance and calls a LoggerFunction for every new line in stdout and stderr
 func (i *Instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
@@ -135,13 +140,11 @@ func (i *Instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd
 	return i.sshClient.Run(ctx, logger, cmd)
 }
 
+// Run runs a command on the instance and returns stdout and stderr as string
 func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) {
-	if err := i.ensureSSHClient(ctx); err != nil {
-		return "", "", err
-	}
 	var stdout strings.Builder
 	var stderr strings.Builder
-	err := i.sshClient.Run(ctx, func(out string, err string) {
+	err := i.RunWithLogger(ctx, func(out, err string) {
 		if out != "" {
 			stdout.WriteString(out + "\n")
 		}
@@ -152,6 +155,7 @@ func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) 
 	return stdout.String(), stderr.String(), err
 }
 
+// CopyFile copies a file from a bytes.Reader to a remote instance
 func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
@@ -159,6 +163,7 @@ func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string
 	return i.sshClient.CopyFile(ctx, data, file, "0755")
 }
 
+// ExecuteActions executes a list of actions on the instance
 func (i *Instance) ExecuteActions(ctx context.Context, actions ...Action) error {
 	for _, a := range actions {
 		if err := a.Run(ctx, i); err != nil {

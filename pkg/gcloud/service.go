@@ -26,10 +26,10 @@ const (
 )
 
 func prefixName(n string) string {
-	return instancePrefix + unprefixName(n)
+	return instancePrefix + trimPrefixName(n)
 }
 
-func unprefixName(n string) string {
+func trimPrefixName(n string) string {
 	return strings.TrimPrefix(n, instancePrefix)
 }
 
@@ -39,41 +39,6 @@ type Service struct {
 	instancesClient *compute.InstancesClient
 	firewallClient  *compute.FirewallsClient
 	projectNumber   string
-}
-
-func (s *Service) networkTags() []string {
-	return []string{toolName}
-}
-
-func (s *Service) labels() map[string]string {
-	return map[string]string{
-		toolName: "true",
-	}
-}
-
-func (s *Service) metadata() *computepb.Metadata {
-	value := fmt.Sprintf("ubuntu:%s", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
-	return &computepb.Metadata{
-		Items: []*computepb.Items{
-			{Key: proto.String("ssh-keys"), Value: &value},
-		},
-	}
-}
-
-func (s *Service) getDefaultServiceAccount() string {
-	return fmt.Sprintf("%s-compute@developer.gserviceaccount.com", s.projectNumber)
-}
-
-func resolveProjectNumber(it *resourcemanager.ProjectIterator) (string, error) {
-	p, err := it.Next()
-	if errors.Is(err, iterator.Done) {
-		return "", fmt.Errorf("no project found")
-	}
-	if err != nil {
-		return "", err
-	}
-	_, projectNumber, _ := strings.Cut(p.GetName(), "/")
-	return projectNumber, nil
 }
 
 func NewService(conf *config.ConductorConfig) (*Service, error) {
@@ -113,6 +78,41 @@ func NewService(conf *config.ConductorConfig) (*Service, error) {
 	return s, nil
 }
 
+func (s *Service) networkTags() []string {
+	return []string{toolName}
+}
+
+func (s *Service) labels() map[string]string {
+	return map[string]string{
+		toolName: "true",
+	}
+}
+
+func (s *Service) metadata() *computepb.Metadata {
+	value := fmt.Sprintf("ubuntu:%s", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
+	return &computepb.Metadata{
+		Items: []*computepb.Items{
+			{Key: proto.String("ssh-keys"), Value: &value},
+		},
+	}
+}
+
+func (s *Service) getDefaultServiceAccount() string {
+	return fmt.Sprintf("%s-compute@developer.gserviceaccount.com", s.projectNumber)
+}
+
+func resolveProjectNumber(it *resourcemanager.ProjectIterator) (string, error) {
+	p, err := it.Next()
+	if errors.Is(err, iterator.Done) {
+		return "", fmt.Errorf("no project found")
+	}
+	if err != nil {
+		return "", err
+	}
+	_, projectNumber, _ := strings.Cut(p.GetName(), "/")
+	return projectNumber, nil
+}
+
 func (s *Service) getLatestUbuntuImage(ctx context.Context) (*string, error) {
 	latestUbuntu, err := s.imagesClient.GetFromFamily(ctx, &computepb.GetFromFamilyImageRequest{
 		Project: "ubuntu-os-cloud",
@@ -124,6 +124,7 @@ func (s *Service) getLatestUbuntuImage(ctx context.Context) (*string, error) {
 	return latestUbuntu.SelfLink, nil
 }
 
+// GetInstance returns the instance with the given name
 func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, error) {
 	instance, err := s.instancesClient.Get(ctx, &computepb.GetInstanceRequest{
 		Project:  s.config.Project,
@@ -139,6 +140,7 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 	}, nil
 }
 
+// GetOrCreateInstance tries to get an instance with the given name. If it does not exist, it will be created.
 func (s *Service) GetOrCreateInstance(ctx context.Context, name string) (*Instance, error) {
 	latestUbuntu, err := s.getLatestUbuntuImage(ctx)
 	if err != nil {
@@ -322,6 +324,7 @@ func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
 	return deletedResources, mErr
 }
 
+// Close all api clients
 func (s *Service) Close() error {
 	var mErr error
 	if err := s.imagesClient.Close(); err != nil {

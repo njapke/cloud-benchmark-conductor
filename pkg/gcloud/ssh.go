@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type LoggerFunction func(stdout string, stderr string)
+type LoggerFunction func(stdout, stderr string)
 
 type SSHSession struct {
 	*ssh.Session
