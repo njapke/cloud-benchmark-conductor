@@ -4,6 +4,8 @@ linters:
     - forbidigo
     - gochecknoinits
     - gocritic
+    - goconst
+    - gocyclo
     - gofumpt
     - goimports
     - misspell
@@ -11,10 +13,13 @@ linters:
     - unconvert
     - unparam
     - wastedassign
+
 linters-settings:
+  gocyclo:
+    min-complexity: 12
+  gofumpt:
+    extra-rules: true
   govet:
     enable-all: true
     disable:
       - fieldalignment
-  gofumpt:
-    extra-rules: true

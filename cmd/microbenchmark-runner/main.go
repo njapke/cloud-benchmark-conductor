@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"regexp"
 	"syscall"
 	"time"
@@ -34,8 +33,6 @@ func main() {
 	rootCmd.Flags().String("git-repository", "", "git repository to use for benchmarking")
 	rootCmd.Flags().String("benchmark-directory", "/tmp/.bench", "directory to use for benchmarking")
 
-	rootCmd.Flags().Bool("list", false, "list all overlapping benchmark functions of the given source paths")
-
 	rootCmd.Flags().Int("run", 1, "current run index")
 	rootCmd.Flags().Int("suite-runs", 3, "amount of suite runs")
 
@@ -52,83 +49,73 @@ func main() {
 	}
 }
 
+func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp string) (benchmark.VersionedFunctions, error) {
+	includeFilter, err := regexp.Compile(includeRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("invalid include filter expression %s: %w", includeRegexp, err)
+	}
+	excludeFilter, err := regexp.Compile(excludeRegexp)
+	if err != nil {
+		return nil, fmt.Errorf("invalid exclude filter expression %s: %w", excludeRegexp, err)
+	}
+	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
+	if err != nil {
+		return nil, err
+	}
+
+	return versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
+		fnName := vf.String()
+		return includeFilter.MatchString(fnName) && !excludeFilter.MatchString(fnName)
+	}), nil
+}
+
+func setupSourcePaths(log *logger.Logger, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2 string) (string, string, error) {
+	if gitRepository != "" {
+		return setup.SourcePathsFromGitRepository(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
+	}
+	return sourcePathOrRefV1, sourcePathOrRefV2, nil
+}
+
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	benchmarkDirectory := cli.MustGetString(cmd, "benchmark-directory")
-
-	listFunctions := cli.MustGetBool(cmd, "list")
-
+	includeRegexp := cli.MustGetString(cmd, "include-filter")
+	excludeRegexp := cli.MustGetString(cmd, "exclude-filter")
 	runIndex := cli.MustGetInt(cmd, "run")
 	suiteRuns := cli.MustGetInt(cmd, "suite-runs")
-
 	outputPaths := cli.MustGetStringArray(cmd, "output")
-
 	outputFormatJSON := cli.MustGetBool(cmd, "json")
 	outputFormatCSV := cli.MustGetBool(cmd, "csv")
 
 	if !outputFormatCSV && !outputFormatJSON {
 		return fmt.Errorf("either --json or --csv must be set to true")
 	}
+	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
+		return fmt.Errorf("source path or git reference for version 1 & 2 are required")
+	}
+
+	log.Info(cli.GetBuildInfo())
 
 	defaultOutputFormat := "csv"
 	if outputFormatJSON {
 		defaultOutputFormat = "json"
 	}
-
-	log.Info(cli.GetBuildInfo())
 	log.Infof("default output format: %s", defaultOutputFormat)
 
-	includeRegexp := cli.MustGetString(cmd, "include-filter")
-	excludeRegexp := cli.MustGetString(cmd, "exclude-filter")
-	includeFilter, err := regexp.Compile(includeRegexp)
+	sourcePathV1, sourcePathV2, err := setupSourcePaths(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
 	if err != nil {
-		return fmt.Errorf("invalid include filter expression %s: %w", includeRegexp, err)
+		return err
 	}
-	excludeFilter, err := regexp.Compile(excludeRegexp)
-	if err != nil {
-		return fmt.Errorf("invalid exclude filter expression %s: %w", excludeRegexp, err)
-	}
-
-	if sourcePathOrRefV1 == "" || sourcePathOrRefV2 == "" {
-		return fmt.Errorf("source path or git reference for version 1 & 2 are required")
-	}
-
-	var sourcePathV1, sourcePathV2 string
-	if gitRepository != "" {
-		var err error
-		sourcePathV1, sourcePathV2, err = setup.SourcePathsFromGitRepository(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
-		if err != nil {
-			return err
-		}
-	} else {
-		sourcePathV1, sourcePathV2 = sourcePathOrRefV1, sourcePathOrRefV2
-	}
-
-	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
+	versionedFunctions, err := getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp)
 	if err != nil {
 		return err
 	}
 
-	versionedFunctions = versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
-		fnName := vf.String()
-		return includeFilter.MatchString(fnName) && !excludeFilter.MatchString(fnName)
-	})
-
-	if listFunctions {
-		for _, fn := range versionedFunctions {
-			log.Infof("%s", fn.V1.String())
-			log.Infof("--> %s", filepath.Join(fn.V1.RootDirectory, fn.V1.FileName))
-			log.Infof("--> %s", filepath.Join(fn.V2.RootDirectory, fn.V2.FileName))
-		}
-		return nil
-	}
-
-	if len(outputPaths) != 1 || outputPaths[0] != "-" {
-		for _, outputPath := range outputPaths {
-			log.Infof("writing output to %s", outputPath)
-		}
+	log.Infof("found %d functions:", len(versionedFunctions))
+	for _, fn := range versionedFunctions {
+		log.Infof("%s", fn.V1.String())
 	}
 
 	// maximum runtime: 30 minutes
@@ -137,15 +124,13 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	var resultWriter benchmark.ResultWriter
-	resultWriter, err = output.New(ctx, outputPaths, defaultOutputFormat)
+	resultWriter, err := output.New(ctx, outputPaths, defaultOutputFormat)
 	if err != nil {
 		return fmt.Errorf("failed to open output: %w", err)
 	}
 	defer resultWriter.Close()
 
 	log.Infof("run index: %d", runIndex)
-
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
 		err := benchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
@@ -154,6 +139,6 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Info("done")
+	log.Info("done.")
 	return nil
 }

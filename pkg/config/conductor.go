@@ -33,26 +33,7 @@ type ConductorConfig struct {
 	Microbenchmark *ConductorMicrobenchmarkConfig
 }
 
-func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
-	c := &ConductorConfig{
-		Project:       viper.GetString("project"),
-		Region:        viper.GetString("region"),
-		Zone:          viper.GetString("zone"),
-		InstanceType:  viper.GetString("instanceType"),
-		SSHPrivateKey: viper.GetString("sshPrivateKey"),
-		GoVersion:     viper.GetString("goVersion"),
-		Microbenchmark: &ConductorMicrobenchmarkConfig{
-			Name:          viper.GetString("microbenchmark.name"),
-			Repository:    viper.GetString("microbenchmark.repository"),
-			Runs:          viper.GetInt("microbenchmark.runs"),
-			V1:            viper.GetString("microbenchmark.v1"),
-			V2:            viper.GetString("microbenchmark.v2"),
-			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
-			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
-			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
-		},
-	}
-
+func (c *ConductorConfig) Validate() error {
 	var confErr error
 	if c.Project == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing project"))
@@ -79,13 +60,34 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 	if c.Microbenchmark.V2 == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v2"))
 	}
+	return confErr
+}
 
-	if confErr != nil {
-		return nil, confErr
+func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
+	c := &ConductorConfig{
+		Project:       viper.GetString("project"),
+		Region:        viper.GetString("region"),
+		Zone:          viper.GetString("zone"),
+		InstanceType:  viper.GetString("instanceType"),
+		SSHPrivateKey: viper.GetString("sshPrivateKey"),
+		GoVersion:     viper.GetString("goVersion"),
+		Microbenchmark: &ConductorMicrobenchmarkConfig{
+			Name:          viper.GetString("microbenchmark.name"),
+			Repository:    viper.GetString("microbenchmark.repository"),
+			Runs:          viper.GetInt("microbenchmark.runs"),
+			V1:            viper.GetString("microbenchmark.v1"),
+			V2:            viper.GetString("microbenchmark.v2"),
+			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
+			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
+			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
+		},
+	}
+
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 
 	var privateKeyData []byte
-
 	if strings.HasPrefix(c.SSHPrivateKey, "-----BEGIN OPENSSH PRIVATE KEY-----") {
 		// load private key directly from config
 		privateKeyData = []byte(c.SSHPrivateKey)

@@ -15,7 +15,7 @@ goVersion: 1.19
 microbenchmark:
   name: go-benchmark-tests
   repository: https://github.com/christophwitzko/go-benchmark-tests.git
-  runs: 3
+  runs: 1
   v1: v1
   v2: v2
   outputs:
