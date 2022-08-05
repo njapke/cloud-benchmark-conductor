@@ -110,7 +110,7 @@ func (vf VersionedFunction) String() string {
 
 func findFunction(fns []Function, search Function) (Function, bool) {
 	for _, f := range fns {
-		if f.PackageName == search.PackageName && f.Name == search.Name {
+		if f.PackageName == search.PackageName && f.Name == search.Name && f.FileName == search.FileName {
 			return f, true
 		}
 	}
