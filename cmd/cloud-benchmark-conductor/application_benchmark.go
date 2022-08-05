@@ -8,6 +8,7 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -38,11 +39,21 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 	defer stop()
 
 	log.Info("setting up firewall rules...")
-	if err := service.EnsureFirewallRules(ctx); err != nil {
+	err = service.EnsureFirewallRules(ctx)
+	if err != nil {
 		return err
 	}
 	log.Info("running application benchmarks...")
+	instance, err := service.GetOrCreateInstance(ctx, "test")
+	if err != nil {
+		return err
+	}
+	defer instance.Close()
 
+	err = instance.ExecuteActions(ctx, actions.NewActionInstallArtillery(log))
+	if err != nil {
+		return err
+	}
 	log.Info("done")
 	return nil
 }
