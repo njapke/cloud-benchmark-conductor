@@ -31,11 +31,16 @@ Therefore compute instances are provisioned and used to execute the benchmarks.`
 		}
 		usedConfigFile := viper.ConfigFileUsed()
 		if usedConfigFile != "" {
-			log.Infof("using config: %s", usedConfigFile)
+			log.Infof("using config: %s", cli.GetRelativePath(usedConfigFile))
 		}
 	})
 	config.ConductorSetupFlagsAndViper(rootCmd)
-	rootCmd.AddCommand(configCmd(log), cleanupCmd(log), mbCmd(log))
+	rootCmd.AddCommand(
+		configCmd(log),
+		cleanupCmd(log),
+		microbenchmarkCmd(log),
+		applicationBenchmarkCmd(log),
+	)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/hashicorp/go-multierror"
@@ -30,6 +31,7 @@ type ConductorConfig struct {
 	SSHPrivateKey  string     `yaml:"sshPrivateKey"`
 	SSHSigner      ssh.Signer `yaml:"-"`
 	GoVersion      string     `yaml:"goVersion"`
+	Timeout        time.Duration
 	Microbenchmark *ConductorMicrobenchmarkConfig
 }
 
@@ -71,6 +73,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 		InstanceType:  viper.GetString("instanceType"),
 		SSHPrivateKey: viper.GetString("sshPrivateKey"),
 		GoVersion:     viper.GetString("goVersion"),
+		Timeout:       viper.GetDuration("timeout"),
 		Microbenchmark: &ConductorMicrobenchmarkConfig{
 			Name:          viper.GetString("microbenchmark.name"),
 			Repository:    viper.GetString("microbenchmark.repository"),
@@ -110,6 +113,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 
 func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringP("config", "c", "", "config file")
+
 	cmd.PersistentFlags().String("project", os.Getenv("CLOUDSDK_CORE_PROJECT"), "google cloud project")
 	cmd.PersistentFlags().String("region", os.Getenv("CLOUDSDK_COMPUTE_REGION"), "compute region")
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
@@ -124,8 +128,8 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("microbenchmark-exclude-filter", "", "exclude filter for the microbenchmark")
 	cmd.PersistentFlags().String("microbenchmark-include-filter", "", "include filter for the microbenchmark")
 	cmd.PersistentFlags().StringArray("microbenchmark-output", []string{"-"}, "outputs of the microbenchmark")
+	cmd.PersistentFlags().Duration("timeout", 30*time.Minute, "timeout for the benchmark execution")
 
-	cli.Must(viper.BindPFlag("config", cmd.PersistentFlags().Lookup("config")))
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
 	cli.Must(viper.BindPFlag("zone", cmd.PersistentFlags().Lookup("zone")))
@@ -140,4 +144,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("microbenchmark.excludeFilter", cmd.PersistentFlags().Lookup("microbenchmark-exclude-filter")))
 	cli.Must(viper.BindPFlag("microbenchmark.includeFilter", cmd.PersistentFlags().Lookup("microbenchmark-include-filter")))
 	cli.Must(viper.BindPFlag("microbenchmark.outputs", cmd.PersistentFlags().Lookup("microbenchmark-output")))
+	cli.Must(viper.BindPFlag("timeout", cmd.PersistentFlags().Lookup("timeout")))
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -15,15 +14,16 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func mbCmd(log *logger.Logger) *cobra.Command {
+func microbenchmarkCmd(log *logger.Logger) *cobra.Command {
 	return &cobra.Command{
-		Use:   "mb",
-		Short: "Run benchmarks in the cloud",
-		Run:   cli.WrapRunE(log, mbRun),
+		Use:     "microbenchmark",
+		Aliases: []string{"mb", "micro"},
+		Short:   "Run microbenchmarks in the cloud",
+		Run:     cli.WrapRunE(log, microbenchmarkRun),
 	}
 }
 
-func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
+func microbenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	conf, err := config.NewConductorConfig(cmd)
 	if err != nil {
 		return err
@@ -34,8 +34,7 @@ func mbRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	defer service.Close()
 
-	// maximum runtime: 30 minutes
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
 	defer cancel()
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

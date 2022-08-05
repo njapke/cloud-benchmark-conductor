@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
@@ -69,4 +70,16 @@ func GetBuildInfo() string {
 		}
 	}
 	return fmt.Sprintf("revision: %s (%s)%s", commit, commitDate, dirty)
+}
+
+func GetRelativePath(p string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return p
+	}
+	relP, err := filepath.Rel(cwd, p)
+	if err != nil {
+		return p
+	}
+	return relP
 }
