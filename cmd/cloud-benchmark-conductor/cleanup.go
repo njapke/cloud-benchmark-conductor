@@ -36,7 +36,7 @@ func cleanupRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	cleanupAll := cli.MustGetBool(cmd, "all")
 	var deletedResources []string
 	if cleanupAll {
-		deletedResources, err = service.Cleanup(context.Background())
+		deletedResources, err = service.CleanupEverything(context.Background())
 	} else {
 		log.Info("deleting instances only...")
 		deletedResources, err = service.CleanupInstances(context.Background())

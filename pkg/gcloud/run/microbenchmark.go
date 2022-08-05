@@ -56,7 +56,8 @@ func getMbRunnerCmd(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) 
 	return strings.Join(cmd, " "), nil
 }
 
-func Microbenchmark(ctx context.Context, log *logger.Logger, service *gcloud.Service, mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) error {
+func Microbenchmark(ctx context.Context, log *logger.Logger, service gcloud.Service, runIndex int) error {
+	mbConf := service.Config().Microbenchmark
 	runnerName := fmt.Sprintf("%s-runner-%d", mbConf.Name, runIndex)
 	log.Infof("[%s] creating or getting instance...", runnerName)
 	instance, err := service.GetOrCreateInstance(ctx, runnerName)

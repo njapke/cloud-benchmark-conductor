@@ -33,7 +33,17 @@ func trimPrefixName(n string) string {
 	return strings.TrimPrefix(n, instancePrefix)
 }
 
-type Service struct {
+type Service interface {
+	Config() *config.ConductorConfig
+	GetInstance(ctx context.Context, name string) (Instance, error)
+	GetOrCreateInstance(ctx context.Context, name string) (Instance, error)
+	EnsureFirewallRules(ctx context.Context) error
+	CleanupInstances(ctx context.Context) ([]string, error)
+	CleanupEverything(ctx context.Context) ([]string, error)
+	Close() error
+}
+
+type service struct {
 	config          *config.ConductorConfig
 	imagesClient    *compute.ImagesClient
 	instancesClient *compute.InstancesClient
@@ -41,7 +51,7 @@ type Service struct {
 	projectNumber   string
 }
 
-func NewService(conf *config.ConductorConfig) (*Service, error) {
+func NewService(conf *config.ConductorConfig) (Service, error) {
 	ctx := context.Background()
 	projectsClient, err := resourcemanager.NewProjectsClient(ctx)
 	if err != nil {
@@ -68,7 +78,7 @@ func NewService(conf *config.ConductorConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Service{
+	s := &service{
 		config:          conf,
 		imagesClient:    imagesClient,
 		instancesClient: instancesClient,
@@ -78,17 +88,17 @@ func NewService(conf *config.ConductorConfig) (*Service, error) {
 	return s, nil
 }
 
-func (s *Service) networkTags() []string {
+func (s *service) networkTags() []string {
 	return []string{toolName}
 }
 
-func (s *Service) labels() map[string]string {
+func (s *service) labels() map[string]string {
 	return map[string]string{
 		toolName: "true",
 	}
 }
 
-func (s *Service) metadata() *computepb.Metadata {
+func (s *service) metadata() *computepb.Metadata {
 	value := fmt.Sprintf("ubuntu:%s", ssh.MarshalAuthorizedKey(s.config.SSHSigner.PublicKey()))
 	return &computepb.Metadata{
 		Items: []*computepb.Items{
@@ -97,7 +107,7 @@ func (s *Service) metadata() *computepb.Metadata {
 	}
 }
 
-func (s *Service) getDefaultServiceAccount() string {
+func (s *service) getDefaultServiceAccount() string {
 	return fmt.Sprintf("%s-compute@developer.gserviceaccount.com", s.projectNumber)
 }
 
@@ -113,7 +123,7 @@ func resolveProjectNumber(it *resourcemanager.ProjectIterator) (string, error) {
 	return projectNumber, nil
 }
 
-func (s *Service) getLatestUbuntuImage(ctx context.Context) (*string, error) {
+func (s *service) getLatestUbuntuImage(ctx context.Context) (*string, error) {
 	latestUbuntu, err := s.imagesClient.GetFromFamily(ctx, &computepb.GetFromFamilyImageRequest{
 		Project: "ubuntu-os-cloud",
 		Family:  "ubuntu-2204-lts",
@@ -124,9 +134,14 @@ func (s *Service) getLatestUbuntuImage(ctx context.Context) (*string, error) {
 	return latestUbuntu.SelfLink, nil
 }
 
+// Config returns the global config
+func (s *service) Config() *config.ConductorConfig {
+	return s.config
+}
+
 // GetInstance returns the instance with the given name
-func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, error) {
-	instance, err := s.instancesClient.Get(ctx, &computepb.GetInstanceRequest{
+func (s *service) GetInstance(ctx context.Context, name string) (Instance, error) {
+	internalInstance, err := s.instancesClient.Get(ctx, &computepb.GetInstanceRequest{
 		Project:  s.config.Project,
 		Zone:     s.config.Zone,
 		Instance: prefixName(name),
@@ -134,23 +149,23 @@ func (s *Service) GetInstance(ctx context.Context, name string) (*Instance, erro
 	if err != nil {
 		return nil, err
 	}
-	return &Instance{
-		Config:           s.config,
-		internalInstance: instance,
+	return &instance{
+		config:           s.config,
+		internalInstance: internalInstance,
 	}, nil
 }
 
 // GetOrCreateInstance tries to get an instance with the given name. If it does not exist, it will be created.
-func (s *Service) GetOrCreateInstance(ctx context.Context, name string) (*Instance, error) {
+func (s *service) GetOrCreateInstance(ctx context.Context, name string) (Instance, error) {
 	latestUbuntu, err := s.getLatestUbuntuImage(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// if instance already exists, return it
-	instance, err := s.GetInstance(ctx, name)
+	existingInstance, err := s.GetInstance(ctx, name)
 	if err == nil {
-		return instance, nil
+		return existingInstance, nil
 	}
 	var gErr *googleapi.Error
 	if !errors.As(err, &gErr) || gErr.Code != 404 {
@@ -214,7 +229,39 @@ func (s *Service) GetOrCreateInstance(ctx context.Context, name string) (*Instan
 	return s.GetInstance(ctx, name)
 }
 
-func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
+func (s *service) EnsureFirewallRules(ctx context.Context) error {
+	_, err := s.firewallClient.Get(ctx, &computepb.GetFirewallRequest{
+		Project:  s.config.Project,
+		Firewall: toolName,
+	})
+	if err == nil {
+		// firewall already exists, nothing to do
+		return nil
+	}
+	var gErr *googleapi.Error
+	if !errors.As(err, &gErr) || gErr.Code != 404 {
+		return err
+	}
+
+	insertOp, err := s.firewallClient.Insert(ctx, &computepb.InsertFirewallRequest{
+		Project: s.config.Project,
+		FirewallResource: &computepb.Firewall{
+			Name:         proto.String(toolName),
+			Network:      proto.String("global/networks/default"),
+			Direction:    proto.String(computepb.Firewall_INGRESS.String()),
+			Priority:     proto.Int32(1000),
+			TargetTags:   []string{toolName},
+			Allowed:      []*computepb.Allowed{{IPProtocol: proto.String("tcp"), Ports: []string{"22"}}},
+			SourceRanges: []string{"0.0.0.0/0"},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return insertOp.Wait(ctx)
+}
+
+func (s *service) CleanupInstances(ctx context.Context) ([]string, error) {
 	instances := s.instancesClient.List(ctx, &computepb.ListInstancesRequest{
 		Project: s.config.Project,
 		Zone:    s.config.Zone,
@@ -263,40 +310,8 @@ func (s *Service) CleanupInstances(ctx context.Context) ([]string, error) {
 	return deletedInstances, mErr
 }
 
-func (s *Service) EnsureFirewallRules(ctx context.Context) error {
-	_, err := s.firewallClient.Get(ctx, &computepb.GetFirewallRequest{
-		Project:  s.config.Project,
-		Firewall: toolName,
-	})
-	if err == nil {
-		// firewall already exists, nothing to do
-		return nil
-	}
-	var gErr *googleapi.Error
-	if !errors.As(err, &gErr) || gErr.Code != 404 {
-		return err
-	}
-
-	insertOp, err := s.firewallClient.Insert(ctx, &computepb.InsertFirewallRequest{
-		Project: s.config.Project,
-		FirewallResource: &computepb.Firewall{
-			Name:         proto.String(toolName),
-			Network:      proto.String("global/networks/default"),
-			Direction:    proto.String(computepb.Firewall_INGRESS.String()),
-			Priority:     proto.Int32(1000),
-			TargetTags:   []string{toolName},
-			Allowed:      []*computepb.Allowed{{IPProtocol: proto.String("tcp"), Ports: []string{"22"}}},
-			SourceRanges: []string{"0.0.0.0/0"},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	return insertOp.Wait(ctx)
-}
-
-// Cleanup deletes all instances and firewall rules created by this service
-func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
+// CleanupEverything deletes all instances and firewall rules created by this service
+func (s *service) CleanupEverything(ctx context.Context) ([]string, error) {
 	var mErr error
 	deletedResources := make([]string, 0)
 	deletedInstances, err := s.CleanupInstances(ctx)
@@ -325,7 +340,7 @@ func (s *Service) Cleanup(ctx context.Context) ([]string, error) {
 }
 
 // Close all api clients
-func (s *Service) Close() error {
+func (s *service) Close() error {
 	var mErr error
 	if err := s.imagesClient.Close(); err != nil {
 		mErr = multierror.Append(mErr, err)

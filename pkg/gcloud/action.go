@@ -5,6 +5,6 @@ import (
 )
 
 type Action interface {
-	Run(ctx context.Context, instance *Instance) error
+	Run(ctx context.Context, instance Instance) error
 	Name() string
 }

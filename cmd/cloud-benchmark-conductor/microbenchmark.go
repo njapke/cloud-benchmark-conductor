@@ -49,7 +49,7 @@ func microbenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []string) er
 	for runIndex := 1; runIndex <= conf.Microbenchmark.Runs; runIndex++ {
 		runIndex := runIndex
 		errGroup.Go(func() error {
-			return run.Microbenchmark(ctx, log, service, conf.Microbenchmark, runIndex)
+			return run.Microbenchmark(ctx, log, service, runIndex)
 		})
 	}
 

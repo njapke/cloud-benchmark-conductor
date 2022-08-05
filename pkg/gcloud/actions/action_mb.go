@@ -23,7 +23,7 @@ func (a *actionInstallMicrobenchmarkRunner) Name() string {
 	return "install-microbenchmark-runner"
 }
 
-func getMbHash(ctx context.Context, instance *gcloud.Instance) (string, error) {
+func getMbHash(ctx context.Context, instance gcloud.Instance) (string, error) {
 	stdout, stderr, err := instance.Run(ctx, "sha512sum /usr/bin/microbenchmark-runner || true\n")
 	if err != nil {
 		return "", fmt.Errorf("failed to run go version: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
@@ -32,7 +32,7 @@ func getMbHash(ctx context.Context, instance *gcloud.Instance) (string, error) {
 	return stdout, nil
 }
 
-func (a *actionInstallMicrobenchmarkRunner) Run(ctx context.Context, instance *gcloud.Instance) error {
+func (a *actionInstallMicrobenchmarkRunner) Run(ctx context.Context, instance gcloud.Instance) error {
 	lp := instance.LogPrefix() + "[" + a.Name() + "]"
 	a.log.Infof("%s installing microbenchmark-runner...", lp)
 	foundMbHash, err := getMbHash(ctx, instance)

@@ -14,36 +14,55 @@ import (
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
 
-type Instance struct {
-	Config           *config.ConductorConfig
+type Instance interface {
+	Config() *config.ConductorConfig
+	Name() string
+	ExternalIP() string
+	SSHEndpoint() string
+	LogPrefix() string
+	RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error
+	Run(ctx context.Context, cmd string) (stdout, stderr string, err error)
+	Reconnect(ctx context.Context) error
+	CopyFile(ctx context.Context, data *bytes.Reader, file string) error
+	ExecuteActions(ctx context.Context, actions ...Action) error
+	Close() error
+}
+
+type instance struct {
+	config           *config.ConductorConfig
 	internalInstance *computepb.Instance
 	sshPortReady     bool
 	sshPortMutex     sync.Mutex
-	sshClient        *SSHClient
+	sshClient        *sshClient
 	sshClientMutex   sync.Mutex
 }
 
+// Config returns the global config
+func (i *instance) Config() *config.ConductorConfig {
+	return i.config
+}
+
 // Name returns the instance name without the prefix
-func (i *Instance) Name() string {
+func (i *instance) Name() string {
 	return trimPrefixName(*i.internalInstance.Name)
 }
 
 // ExternalIP returns the external IP of the instance
-func (i *Instance) ExternalIP() string {
+func (i *instance) ExternalIP() string {
 	return *i.internalInstance.NetworkInterfaces[0].AccessConfigs[0].NatIP
 }
 
 // SSHEndpoint returns the public SSH endpoint of the instance
-func (i *Instance) SSHEndpoint() string {
+func (i *instance) SSHEndpoint() string {
 	return i.ExternalIP() + ":22"
 }
 
-// LogPrefix returns the a log prefix that contains the instance name
-func (i *Instance) LogPrefix() string {
+// LogPrefix returns the log prefix that contains the instance name
+func (i *instance) LogPrefix() string {
 	return fmt.Sprintf("[%s]", i.Name())
 }
 
-func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
+func (i *instance) waitForSSHPortReady(ctx context.Context) error {
 	i.sshPortMutex.Lock()
 	defer i.sshPortMutex.Unlock()
 	if err := ctx.Err(); err != nil {
@@ -68,7 +87,7 @@ func (i *Instance) waitForSSHPortReady(ctx context.Context) error {
 	}
 }
 
-func (i *Instance) newSSHClient(ctx context.Context) (*SSHClient, error) {
+func (i *instance) newSSHClient(ctx context.Context) (*sshClient, error) {
 	if err := i.waitForSSHPortReady(ctx); err != nil {
 		return nil, err
 	}
@@ -80,16 +99,16 @@ func (i *Instance) newSSHClient(ctx context.Context) (*SSHClient, error) {
 	}
 	sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, sshEndpoint, &ssh.ClientConfig{
 		User:            "ubuntu",
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.Config.SSHSigner)},
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.config.SSHSigner)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
 		return nil, MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
 	}
-	return &SSHClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
+	return &sshClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
 }
 
-func (i *Instance) ensureSSHClient(ctx context.Context) error {
+func (i *instance) ensureSSHClient(ctx context.Context) error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
@@ -104,7 +123,7 @@ func (i *Instance) ensureSSHClient(ctx context.Context) error {
 }
 
 // Close SSH connection if open
-func (i *Instance) Close() error {
+func (i *instance) Close() error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
@@ -116,7 +135,7 @@ func (i *Instance) Close() error {
 }
 
 // Reconnect to instance via SSH
-func (i *Instance) Reconnect(ctx context.Context) error {
+func (i *instance) Reconnect(ctx context.Context) error {
 	i.sshClientMutex.Lock()
 	defer i.sshClientMutex.Unlock()
 	if i.sshClient != nil {
@@ -133,7 +152,7 @@ func (i *Instance) Reconnect(ctx context.Context) error {
 }
 
 // RunWithLogger runs a command on the instance and calls a LoggerFunction for every new line in stdout and stderr
-func (i *Instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error {
+func (i *instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
@@ -141,7 +160,7 @@ func (i *Instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd
 }
 
 // Run runs a command on the instance and returns stdout and stderr as string
-func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) {
+func (i *instance) Run(ctx context.Context, cmd string) (string, string, error) {
 	var stdout strings.Builder
 	var stderr strings.Builder
 	err := i.RunWithLogger(ctx, func(out, err string) {
@@ -156,7 +175,7 @@ func (i *Instance) Run(ctx context.Context, cmd string) (string, string, error) 
 }
 
 // CopyFile copies a file from a bytes.Reader to a remote instance
-func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
+func (i *instance) CopyFile(ctx context.Context, data *bytes.Reader, file string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
@@ -164,7 +183,7 @@ func (i *Instance) CopyFile(ctx context.Context, data *bytes.Reader, file string
 }
 
 // ExecuteActions executes a list of actions on the instance
-func (i *Instance) ExecuteActions(ctx context.Context, actions ...Action) error {
+func (i *instance) ExecuteActions(ctx context.Context, actions ...Action) error {
 	for _, a := range actions {
 		if err := a.Run(ctx, i); err != nil {
 			return fmt.Errorf("failed to run action %s: %w", a.Name(), err)

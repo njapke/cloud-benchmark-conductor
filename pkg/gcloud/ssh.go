@@ -13,23 +13,23 @@ import (
 
 type LoggerFunction func(stdout, stderr string)
 
-type SSHSession struct {
+type sshSession struct {
 	*ssh.Session
 	StdoutChan chan string
 	StderrChan chan string
 }
-type SSHClient struct {
+type sshClient struct {
 	sshClient *ssh.Client
 
 	// allows only one active ssh session per client
 	sshSessionMutex sync.Mutex
 }
 
-func (c *SSHClient) Close() error {
+func (c *sshClient) Close() error {
 	return c.sshClient.Close()
 }
 
-func (c *SSHClient) openSSHSession() (*SSHSession, error) {
+func (c *sshClient) openSSHSession() (*sshSession, error) {
 	session, err := c.sshClient.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ssh session: %w", err)
@@ -60,14 +60,14 @@ func (c *SSHClient) openSSHSession() (*SSHSession, error) {
 		}
 		close(stderrChan)
 	}()
-	return &SSHSession{
+	return &sshSession{
 		Session:    session,
 		StdoutChan: stdoutChan,
 		StderrChan: stderrChan,
 	}, nil
 }
 
-func (c *SSHClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string) error {
+func (c *sshClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string) error {
 	c.sshSessionMutex.Lock()
 	defer c.sshSessionMutex.Unlock()
 	session, err := c.openSSHSession()
@@ -117,7 +117,7 @@ func (c *SSHClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string
 	}
 }
 
-func (c *SSHClient) CopyFile(ctx context.Context, data *bytes.Reader, remotePath, permission string) error {
+func (c *sshClient) CopyFile(ctx context.Context, data *bytes.Reader, remotePath, permission string) error {
 	c.sshSessionMutex.Lock()
 	defer c.sshSessionMutex.Unlock()
 	scpClient, err := scp.NewClientBySSH(c.sshClient)
