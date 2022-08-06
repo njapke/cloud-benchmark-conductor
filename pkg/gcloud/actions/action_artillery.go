@@ -59,6 +59,7 @@ func (a *actionInstallArtillery) Run(ctx context.Context, instance gcloud.Instan
 	}
 
 	a.log.Infof("%s installing or updating artillery...", lp)
+	// TODO: very slow, maybe introduce caching?
 	stdout, stderr, err = instance.Run(ctx, "sudo npm install --location=global artillery@latest")
 	if err != nil {
 		return fmt.Errorf("failed to install artillery: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)

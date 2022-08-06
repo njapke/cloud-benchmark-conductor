@@ -119,7 +119,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
 	cmd.PersistentFlags().StringP("ssh-private-key", "i", "", "path to ssh private key")
 	cmd.PersistentFlags().String("instance-type", "f1-micro", "instance type")
-	cmd.PersistentFlags().String("go-version", "1.18.4", "go version")
+	cmd.PersistentFlags().String("go-version", "1.19", "go version")
 	cmd.PersistentFlags().String("microbenchmark-name", "mb", "name of the microbenchmark")
 	cmd.PersistentFlags().String("microbenchmark-repository", "", "repository of the microbenchmark")
 	cmd.PersistentFlags().Int("microbenchmark-runs", 3, "number of parallel runs")
