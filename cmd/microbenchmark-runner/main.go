@@ -11,9 +11,9 @@ import (
 
 	"github.com/christophwitzko/master-thesis/pkg/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/benchmark/output"
-	"github.com/christophwitzko/master-thesis/pkg/benchmark/setup"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 )
 

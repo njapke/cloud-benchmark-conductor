@@ -91,3 +91,33 @@ func Clone(repoURL string, destinationDirs ...string) ([]*git.Repository, error)
 	}
 	return repos, nil
 }
+
+type CheckoutOption struct {
+	DestinationDir string
+	RefName        string
+}
+
+func NewCheckoutOption(destDir, refName string) *CheckoutOption {
+	return &CheckoutOption{
+		DestinationDir: destDir,
+		RefName:        refName,
+	}
+}
+
+func CloneAndCheckout(repoURL string, checkoutOptions ...*CheckoutOption) error {
+	destinationDirs := make([]string, len(checkoutOptions))
+	for i, option := range checkoutOptions {
+		destinationDirs[i] = option.DestinationDir
+	}
+	repos, err := Clone(repoURL, destinationDirs...)
+	if err != nil {
+		return err
+	}
+	for i, repo := range repos {
+		err := CheckoutReference(repo, checkoutOptions[i].RefName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
