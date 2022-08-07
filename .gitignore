@@ -11,6 +11,8 @@ cloud-benchmark-conductor
 !cloud-benchmark-conductor/
 microbenchmark-runner
 !microbenchmark-runner/
+application-runner
+!application-runner/
 
 *.csv
 test-key
