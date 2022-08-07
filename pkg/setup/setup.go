@@ -9,6 +9,13 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
+func SourcePaths(log *logger.Logger, checkoutDir, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2 string) (string, string, error) {
+	if gitRepository != "" {
+		return SourcePathsFromGitRepository(log, checkoutDir, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
+	}
+	return sourcePathOrRefV1, sourcePathOrRefV2, nil
+}
+
 func SourcePathsFromGitRepository(log *logger.Logger, checkoutDir, repoURL, refV1, refV2 string) (string, string, error) {
 	if err := os.RemoveAll(checkoutDir); err != nil {
 		return "", "", err

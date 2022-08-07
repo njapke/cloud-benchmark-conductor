@@ -69,13 +69,6 @@ func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeReg
 	}), nil
 }
 
-func setupSourcePaths(log *logger.Logger, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2 string) (string, string, error) {
-	if gitRepository != "" {
-		return setup.SourcePathsFromGitRepository(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
-	}
-	return sourcePathOrRefV1, sourcePathOrRefV2, nil
-}
-
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
@@ -104,7 +97,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	log.Infof("default output format: %s", defaultOutputFormat)
 
-	sourcePathV1, sourcePathV2, err := setupSourcePaths(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
+	sourcePathV1, sourcePathV2, err := setup.SourcePaths(log, benchmarkDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
 	if err != nil {
 		return err
 	}
