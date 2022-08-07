@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type LoggerFunction func(stdout, stderr string)
+type LoggerFunc func(stdout, stderr string)
 
 type sshSession struct {
 	*ssh.Session
@@ -68,7 +68,7 @@ func (c *sshClient) openSSHSession() (*sshSession, error) {
 	}, nil
 }
 
-func (c *sshClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string) error {
+func (c *sshClient) Run(ctx context.Context, loggerFn LoggerFunc, cmd string) error {
 	c.sshSessionMutex.Lock()
 	defer c.sshSessionMutex.Unlock()
 	session, err := c.openSSHSession()

@@ -21,7 +21,7 @@ type Instance interface {
 	ExternalIP() string
 	SSHEndpoint() string
 	LogPrefix() string
-	RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error
+	RunWithLogger(ctx context.Context, logger LoggerFunc, cmd string) error
 	Run(ctx context.Context, cmd string) (stdout, stderr string, err error)
 	Reconnect(ctx context.Context) error
 	CopyFile(ctx context.Context, data *bytes.Reader, file string) error
@@ -152,8 +152,8 @@ func (i *instance) Reconnect(ctx context.Context) error {
 	return err
 }
 
-// RunWithLogger runs a command on the instance and calls a LoggerFunction for every new line in stdout and stderr
-func (i *instance) RunWithLogger(ctx context.Context, logger LoggerFunction, cmd string) error {
+// RunWithLogger runs a command on the instance and calls a LoggerFunc for every new line in stdout and stderr
+func (i *instance) RunWithLogger(ctx context.Context, logger LoggerFunc, cmd string) error {
 	if err := i.ensureSSHClient(ctx); err != nil {
 		return err
 	}
