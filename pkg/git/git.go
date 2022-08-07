@@ -16,13 +16,13 @@ const (
 	referenceTypeBranch = referenceType("branch")
 )
 
-func checkRefIfExists(refType referenceType, repo *git.Repository, tagName string) (bool, error) {
+func checkRefIfExists(refType referenceType, repo *git.Repository, tagOrBranchName string) (bool, error) {
 	var refName plumbing.ReferenceName
 	switch refType {
 	case referenceTypeTag:
-		refName = plumbing.NewTagReferenceName(tagName)
+		refName = plumbing.NewTagReferenceName(tagOrBranchName)
 	case referenceTypeBranch:
-		refName = plumbing.NewBranchReferenceName(tagName)
+		refName = plumbing.NewRemoteReferenceName("origin", tagOrBranchName)
 	default:
 		return false, fmt.Errorf("unknown ref type: %s", refType)
 	}
@@ -41,6 +41,7 @@ func CheckoutReference(repo *git.Repository, refName string) error {
 	if err != nil {
 		return err
 	}
+
 	checkoutOptions := &git.CheckoutOptions{}
 	isTag, err := checkRefIfExists(referenceTypeTag, repo, refName)
 	if err != nil {
@@ -50,12 +51,13 @@ func CheckoutReference(repo *git.Repository, refName string) error {
 		checkoutOptions.Branch = plumbing.NewTagReferenceName(refName)
 		return repoTree.Checkout(checkoutOptions)
 	}
+
 	isBranch, err := checkRefIfExists(referenceTypeBranch, repo, refName)
 	if err != nil {
 		return err
 	}
 	if isBranch {
-		checkoutOptions.Branch = plumbing.NewBranchReferenceName(refName)
+		checkoutOptions.Branch = plumbing.NewRemoteReferenceName("origin", refName)
 	} else {
 		checkoutOptions.Hash = plumbing.NewHash(refName)
 	}
