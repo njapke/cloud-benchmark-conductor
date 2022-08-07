@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
+	"github.com/christophwitzko/master-thesis/pkg/merror"
 	"golang.org/x/crypto/ssh"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
@@ -103,7 +104,7 @@ func (i *instance) newSSHClient(ctx context.Context) (*sshClient, error) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		return nil, MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
+		return nil, merror.MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
 	}
 	return &sshClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
 }

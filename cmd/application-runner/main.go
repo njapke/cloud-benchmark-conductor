@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/application"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
+	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
@@ -48,9 +51,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
-	defer cancel()
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	execFileV1 := filepath.Join(sourcePathV1, "v1")
@@ -68,13 +69,28 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	log.Info("-> all builds finished successfully")
 
-	runGroup, runCtx := errgroup.WithContext(ctx)
-	runGroup.Go(func() error {
-		return application.Run(runCtx, log, execFileV1, "127.0.0.1:3030")
-	})
-	runGroup.Go(func() error {
-		return application.Run(runCtx, log, execFileV2, "127.0.0.1:3031")
-	})
+	execFiles := []string{execFileV1, execFileV2}
+	errChan := make(chan error, len(execFiles))
+	wg := sync.WaitGroup{}
+	wg.Add(len(execFiles))
+	startPort := 3000
+	for i, execFile := range execFiles {
+		go func(i int, execFile string) {
+			defer wg.Done()
+			appErr := application.Run(ctx, log, execFile, fmt.Sprintf("127.0.0.1:%d", startPort+i))
+			if err != nil {
+				log.Warnf("-> application %s exited with error: %v", execFile, appErr)
+			}
+			errChan <- appErr
+		}(i, execFile)
+	}
+	wg.Wait()
 
-	return runGroup.Wait()
+	// combine all errors
+	err = multierror.Append(<-errChan, <-errChan)
+	if errors.Is(err, context.Canceled) {
+		log.Warnf("-> applications stopped")
+		return nil
+	}
+	return err
 }

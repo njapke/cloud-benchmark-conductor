@@ -1,4 +1,4 @@
-package gcloud
+package merror
 
 import "github.com/hashicorp/go-multierror"
 

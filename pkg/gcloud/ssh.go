@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/bramvdbogaerde/go-scp"
+	"github.com/christophwitzko/master-thesis/pkg/merror"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -37,11 +38,11 @@ func (c *sshClient) openSSHSession() (*sshSession, error) {
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
-		return nil, MaybeMultiError(fmt.Errorf("failed to create stdout pipe: %w", err), session.Close())
+		return nil, merror.MaybeMultiError(fmt.Errorf("failed to create stdout pipe: %w", err), session.Close())
 	}
 	stderr, err := session.StderrPipe()
 	if err != nil {
-		return nil, MaybeMultiError(fmt.Errorf("failed to create stderr pipe: %w", err), session.Close())
+		return nil, merror.MaybeMultiError(fmt.Errorf("failed to create stderr pipe: %w", err), session.Close())
 	}
 
 	stdoutChan := make(chan string)
@@ -110,7 +111,7 @@ func (c *sshClient) Run(ctx context.Context, loggerFn LoggerFunction, cmd string
 		waitErr := <-waitErrCh
 		// wait for stdio to close
 		stdioWg.Wait()
-		return MaybeMultiError(ctx.Err(), signalErr, waitErr)
+		return merror.MaybeMultiError(ctx.Err(), signalErr, waitErr)
 	case err := <-waitErrCh:
 		stdioWg.Wait()
 		return err

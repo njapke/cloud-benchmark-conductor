@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/merror"
 )
 
 func Build(ctx context.Context, log *logger.Logger, buildPath, outputFile string) error {
@@ -32,7 +33,7 @@ func Build(ctx context.Context, log *logger.Logger, buildPath, outputFile string
 }
 
 func Run(ctx context.Context, log *logger.Logger, execFile, bindAddress string) error {
-	cmd := exec.CommandContext(ctx, execFile)
+	cmd := exec.Command(execFile)
 	cmd.Dir = filepath.Dir(execFile)
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", fmt.Sprintf("BIND_ADDRESS=%s", bindAddress))
 	logPipeRead, logPipeWrite := io.Pipe()
@@ -42,9 +43,25 @@ func Run(ctx context.Context, log *logger.Logger, execFile, bindAddress string) 
 		// prevent parent sending signals to child processes
 		Setpgid: true,
 	}
-
 	defer logPipeWrite.Close()
+
 	go log.PrefixedReader(fmt.Sprintf("|%s|", filepath.Base(execFile)), logPipeRead)
 	log.Infof("running %s with BIND_ADDRESS=%s", execFile, bindAddress)
-	return cmd.Run()
+	errCh := make(chan error, 1)
+	go func() {
+		if err := cmd.Run(); err != nil {
+			errCh <- err
+		}
+		close(errCh)
+	}()
+
+	select {
+	case <-ctx.Done():
+		log.Warnf("killing %s", execFile)
+		killErr := cmd.Process.Signal(syscall.SIGKILL)
+		waitErr := <-errCh // should be a signal: killed error
+		return merror.MaybeMultiError(ctx.Err(), killErr, waitErr)
+	case err := <-errCh:
+		return err
+	}
 }
