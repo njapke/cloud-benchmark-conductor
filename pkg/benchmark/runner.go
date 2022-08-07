@@ -1,7 +1,6 @@
 package benchmark
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -115,12 +114,7 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 	cmd.Stderr = logPipeWrite
 
 	benchFmtReader := io.TeeReader(pipeRead, logPipeWrite)
-	go func() {
-		logLineScanner := bufio.NewScanner(logPipeRead)
-		for logLineScanner.Scan() {
-			log.Infof("       | %s", logLineScanner.Text())
-		}
-	}()
+	go log.PrefixedReader("       |", logPipeRead)
 
 	errCh := make(chan error, 1)
 	go func() {
