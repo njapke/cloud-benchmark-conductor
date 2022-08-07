@@ -246,12 +246,16 @@ func (s *service) EnsureFirewallRules(ctx context.Context) error {
 	insertOp, err := s.firewallClient.Insert(ctx, &computepb.InsertFirewallRequest{
 		Project: s.config.Project,
 		FirewallResource: &computepb.Firewall{
-			Name:         proto.String(toolName),
-			Network:      proto.String("global/networks/default"),
-			Direction:    proto.String(computepb.Firewall_INGRESS.String()),
-			Priority:     proto.Int32(1000),
-			TargetTags:   []string{toolName},
-			Allowed:      []*computepb.Allowed{{IPProtocol: proto.String("tcp"), Ports: []string{"22"}}},
+			Name:       proto.String(toolName),
+			Network:    proto.String("global/networks/default"),
+			Direction:  proto.String(computepb.Firewall_INGRESS.String()),
+			Priority:   proto.Int32(1000),
+			TargetTags: []string{toolName},
+			Allowed: []*computepb.Allowed{{
+				IPProtocol: proto.String("tcp"),
+				// TODO: remove application ports after testing and use internal networking
+				Ports: []string{"22", "3000-3010"},
+			}},
 			SourceRanges: []string{"0.0.0.0/0"},
 		},
 	})
