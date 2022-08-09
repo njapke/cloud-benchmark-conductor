@@ -34,6 +34,7 @@ func main() {
 	rootCmd.Flags().String("v2", "", "source path or git reference for version 2")
 	rootCmd.Flags().String("git-repository", "", "git repository to use for installing the applications")
 	rootCmd.Flags().String("application-directory", "/tmp/.application", "directory to use for running the application")
+	rootCmd.Flags().String("application-package", "./", "package that should be build and run")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -45,6 +46,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	applicationDirectory := cli.MustGetString(cmd, "application-directory")
+	applicationPackage := cli.MustGetString(cmd, "application-package")
 
 	sourcePathV1, sourcePathV2, err := setup.SourcePaths(log, applicationDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
 	if err != nil {
@@ -58,10 +60,10 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	execFileV2 := filepath.Join(sourcePathV2, "v2")
 	buildGroup, buildCtx := errgroup.WithContext(ctx)
 	buildGroup.Go(func() error {
-		return application.Build(buildCtx, log, sourcePathV1, execFileV1)
+		return application.Build(buildCtx, log, sourcePathV1, applicationPackage, execFileV1)
 	})
 	buildGroup.Go(func() error {
-		return application.Build(buildCtx, log, sourcePathV2, execFileV2)
+		return application.Build(buildCtx, log, sourcePathV2, applicationPackage, execFileV2)
 	})
 	err = buildGroup.Wait()
 	if err != nil {

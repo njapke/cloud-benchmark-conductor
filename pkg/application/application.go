@@ -14,11 +14,14 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/merror"
 )
 
-func Build(ctx context.Context, log *logger.Logger, buildPath, outputFile string) error {
+func Build(ctx context.Context, log *logger.Logger, buildPath, buildPackage, outputFile string) error {
+	if !strings.HasPrefix(buildPackage, "./") {
+		return fmt.Errorf("build package must be a relative path")
+	}
 	args := []string{
 		"build",
 		"-o", outputFile,
-		"./",
+		buildPackage,
 	}
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = buildPath
