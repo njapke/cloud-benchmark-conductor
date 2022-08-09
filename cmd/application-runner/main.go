@@ -22,9 +22,9 @@ import (
 func main() {
 	log := logger.New()
 	rootCmd := &cobra.Command{
-		Use:   "microbenchmark-runner",
-		Short: "microbenchmark runner tool",
-		Long:  "This tool is used to run microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).",
+		Use:   "application-runner",
+		Short: "application runner tool",
+		Long:  "This tool builds and runs two versions of an application concurrently.",
 		Run:   cli.WrapRunE(log, rootRun),
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
@@ -69,26 +69,26 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 	log.Info("-> all builds finished successfully")
 
-	execFiles := []string{execFileV1, execFileV2}
-	errChan := make(chan error, len(execFiles))
+	var mErrMutex sync.Mutex
+	var mErr error
 	wg := sync.WaitGroup{}
-	wg.Add(len(execFiles))
 	startPort := 3000
-	for i, execFile := range execFiles {
+	for i, execFile := range []string{execFileV1, execFileV2} {
+		wg.Add(1)
 		go func(i int, execFile string) {
 			defer wg.Done()
 			appErr := application.Run(ctx, log, execFile, fmt.Sprintf("127.0.0.1:%d", startPort+i))
-			if err != nil {
+			if appErr != nil {
 				log.Warnf("-> application %s exited with error: %v", execFile, appErr)
+				mErrMutex.Lock()
+				mErr = multierror.Append(mErr, appErr)
+				mErrMutex.Unlock()
 			}
-			errChan <- appErr
 		}(i, execFile)
 	}
 	wg.Wait()
 
-	// combine all errors
-	err = multierror.Append(<-errChan, <-errChan)
-	if errors.Is(err, context.Canceled) {
+	if errors.Is(mErr, context.Canceled) {
 		log.Warnf("-> applications stopped")
 		return nil
 	}

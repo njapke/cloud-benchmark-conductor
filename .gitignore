@@ -5,6 +5,8 @@ google-application-credentials.json
 .envrc
 
 pkg/assets/mb-runner_linux_amd64
+pkg/assets/app-runner_linux_amd64
+pkg/assets/app-bench-runner_linux_amd64
 _scripts_from_paper/
 
 cloud-benchmark-conductor
@@ -13,6 +15,8 @@ microbenchmark-runner
 !microbenchmark-runner/
 application-runner
 !application-runner/
+application-benchmark-runner
+!application-benchmark-runner/
 
 *.csv
 test-key
