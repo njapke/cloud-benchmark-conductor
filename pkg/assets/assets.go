@@ -1,34 +1,29 @@
 package assets
 
 import (
+	"bytes"
 	"crypto/sha512"
 	_ "embed"
 	"encoding/hex"
 )
 
-func getHash(data []byte) string {
+type Binary []byte
+
+func (b Binary) GetHash() string {
 	hash := sha512.New()
-	hash.Write(data)
+	hash.Write(b)
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-//go:embed mb-runner_linux_amd64
-var MicrobenchmarkRunnerBinaryLinuxAmd64 []byte
-
-func GetMicrobenchmarkRunnerBinaryLinuxAmd64Hash() string {
-	return getHash(MicrobenchmarkRunnerBinaryLinuxAmd64)
+func (b Binary) GetReader() *bytes.Reader {
+	return bytes.NewReader(b)
 }
+
+//go:embed mb-runner_linux_amd64
+var MicrobenchmarkRunner Binary
 
 //go:embed app-runner_linux_amd64
-var ApplicationRunnerBinaryLinuxAmd64 []byte
-
-func GetApplicationRunnerBinaryLinuxAmd64Hash() string {
-	return getHash(ApplicationRunnerBinaryLinuxAmd64)
-}
+var ApplicationRunner Binary
 
 //go:embed app-bench-runner_linux_amd64
-var ApplicationBenchmarkRunnerBinaryLinuxAmd64 []byte
-
-func GetApplicationBenchmarkRunnerBinaryLinuxAmd64Hash() string {
-	return getHash(ApplicationBenchmarkRunnerBinaryLinuxAmd64)
-}
+var ApplicationBenchmarkRunner Binary

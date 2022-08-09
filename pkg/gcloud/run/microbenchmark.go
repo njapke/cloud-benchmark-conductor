@@ -8,6 +8,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/christophwitzko/master-thesis/pkg/assets"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
@@ -74,7 +75,10 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service gcloud.Serv
 	defer instance.Close()
 
 	log.Infof("[%s] setting up instance...", runnerName)
-	err = instance.ExecuteActions(ctx, actions.NewActionInstallGo(log), actions.NewActionInstallMicrobenchmarkRunner(log))
+	err = instance.ExecuteActions(ctx,
+		actions.NewActionInstallGo(log),
+		actions.NewActionInstallBinary(log, "microbenchmark-runner", assets.MicrobenchmarkRunner),
+	)
 	if err != nil {
 		return err
 	}
