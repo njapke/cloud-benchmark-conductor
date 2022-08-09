@@ -35,6 +35,7 @@ func main() {
 	rootCmd.Flags().String("git-repository", "", "git repository to use for installing the applications")
 	rootCmd.Flags().String("application-directory", "/tmp/.application", "directory to use for running the application")
 	rootCmd.Flags().String("application-package", "./", "package that should be build and run")
+	rootCmd.Flags().String("bind", "127.0.0.1", "bind address")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -47,6 +48,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	applicationDirectory := cli.MustGetString(cmd, "application-directory")
 	applicationPackage := cli.MustGetString(cmd, "application-package")
+	bindAddress := cli.MustGetString(cmd, "bind")
 
 	sourcePathV1, sourcePathV2, err := setup.SourcePaths(log, applicationDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
 	if err != nil {
@@ -79,7 +81,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		wg.Add(1)
 		go func(i int, execFile string) {
 			defer wg.Done()
-			appErr := application.Run(ctx, log, execFile, fmt.Sprintf("127.0.0.1:%d", startPort+i))
+			appErr := application.Run(ctx, log, execFile, fmt.Sprintf("%s:%d", bindAddress, startPort+i))
 			if appErr != nil {
 				log.Warnf("-> application %s exited with error: %v", execFile, appErr)
 				mErrMutex.Lock()

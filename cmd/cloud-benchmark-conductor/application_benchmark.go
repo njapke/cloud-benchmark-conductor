@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/christophwitzko/master-thesis/pkg/assets"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
@@ -50,7 +51,16 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 	}
 	defer instance.Close()
 
-	err = instance.ExecuteActions(ctx, actions.NewActionInstallArtillery(log))
+	err = instance.ExecuteActions(ctx,
+		actions.NewActionInstallGo(log),
+		actions.NewActionInstallBinary(log, "application-runner", assets.ApplicationRunner),
+	)
+	if err != nil {
+		return err
+	}
+	err = instance.RunWithLogger(ctx, func(stdout, stderr string) {
+		log.Infof("|app-runner| %s%s", stdout, stderr)
+	}, "application-runner --v1 main --v2 main --git-repository='https://github.com/christophwitzko/go-benchmark-tests.git' --bind 0.0.0.0")
 	if err != nil {
 		return err
 	}
