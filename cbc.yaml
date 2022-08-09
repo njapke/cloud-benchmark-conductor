@@ -2,6 +2,7 @@
 project: mt-benchmarks
 region: europe-west1
 zone: europe-west1-b
+#instanceType: e2-standard-4
 instanceType: f1-micro
 sshPrivateKey: |
   -----BEGIN OPENSSH PRIVATE KEY-----
@@ -12,14 +13,24 @@ sshPrivateKey: |
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
 goVersion: 1.19
+#microbenchmark:
+#  name: go-benchmark-tests
+#  repository: https://github.com/christophwitzko/go-benchmark-tests.git
+#  runs: 1
+#  v1: v1
+#  v2: v2
+#  outputs:
+#    #    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?chunked=true&new-chunk-fn=suite&no-csv-header=true
+#    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?no-csv-header=true
+#  includeFilter: "^foo.*$"
 microbenchmark:
-  name: go-benchmark-tests
-  repository: https://github.com/christophwitzko/go-benchmark-tests.git
+  name: flight-booking-service
+  repository: https://github.com/christophwitzko/flight-booking-service.git
   runs: 1
-  v1: v1
-  v2: v2
+  suiteRuns: 1
+  v1: main
+  v2: main
   outputs:
-#    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?chunked=true&new-chunk-fn=suite&no-csv-header=true
-    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?no-csv-header=true
-  includeFilter: "^foo.*$"
-#  excludeFilter: "^chi.*$"
+    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?no-csv-header=true
+#  includeFilter: "^database.*$"
+  excludeFilter: "^chi.*$"
