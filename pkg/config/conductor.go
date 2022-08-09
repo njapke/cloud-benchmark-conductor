@@ -17,6 +17,7 @@ type ConductorMicrobenchmarkConfig struct {
 	Name          string
 	Repository    string
 	Runs          int
+	SuiteRuns     int `yaml:"suiteRuns"`
 	V1, V2        string
 	ExcludeFilter string   `yaml:"excludeFilter"`
 	IncludeFilter string   `yaml:"includeFilter"`
@@ -78,6 +79,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			Name:          viper.GetString("microbenchmark.name"),
 			Repository:    viper.GetString("microbenchmark.repository"),
 			Runs:          viper.GetInt("microbenchmark.runs"),
+			SuiteRuns:     viper.GetInt("microbenchmark.suiteRuns"),
 			V1:            viper.GetString("microbenchmark.v1"),
 			V2:            viper.GetString("microbenchmark.v2"),
 			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
@@ -123,6 +125,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("microbenchmark-name", "mb", "name of the microbenchmark")
 	cmd.PersistentFlags().String("microbenchmark-repository", "", "repository of the microbenchmark")
 	cmd.PersistentFlags().Int("microbenchmark-runs", 3, "number of parallel runs")
+	cmd.PersistentFlags().Int("microbenchmark-suite-runs", 3, "number of suite runs")
 	cmd.PersistentFlags().String("microbenchmark-v1", "", "v1 of the microbenchmark to run")
 	cmd.PersistentFlags().String("microbenchmark-v2", "", "v2 of the microbenchmark to run")
 	cmd.PersistentFlags().String("microbenchmark-exclude-filter", "", "exclude filter for the microbenchmark")
@@ -139,6 +142,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("microbenchmark.name", cmd.PersistentFlags().Lookup("microbenchmark-name")))
 	cli.Must(viper.BindPFlag("microbenchmark.repository", cmd.PersistentFlags().Lookup("microbenchmark-repository")))
 	cli.Must(viper.BindPFlag("microbenchmark.runs", cmd.PersistentFlags().Lookup("microbenchmark-runs")))
+	cli.Must(viper.BindPFlag("microbenchmark.suiteRuns", cmd.PersistentFlags().Lookup("microbenchmark-suite-runs")))
 	cli.Must(viper.BindPFlag("microbenchmark.v1", cmd.PersistentFlags().Lookup("microbenchmark-v1")))
 	cli.Must(viper.BindPFlag("microbenchmark.v2", cmd.PersistentFlags().Lookup("microbenchmark-v2")))
 	cli.Must(viper.BindPFlag("microbenchmark.excludeFilter", cmd.PersistentFlags().Lookup("microbenchmark-exclude-filter")))

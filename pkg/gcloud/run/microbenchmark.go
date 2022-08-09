@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
@@ -13,9 +14,12 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
+var currentTimestamp = time.Now().Format(time.RFC3339)
+
 type tmplData struct {
-	Name     string
-	RunIndex int
+	Timestamp string
+	Name      string
+	RunIndex  int
 }
 
 func applyTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int, tmplStr string) (string, error) {
@@ -25,8 +29,9 @@ func applyTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int, t
 	}
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, tmplData{
-		Name:     mbConf.Name,
-		RunIndex: runIndex,
+		Timestamp: currentTimestamp,
+		Name:      mbConf.Name,
+		RunIndex:  runIndex,
 	})
 	if err != nil {
 		return "", err
@@ -38,6 +43,7 @@ func getMbRunnerCmd(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) 
 	cmd := []string{
 		"microbenchmark-runner",
 		fmt.Sprintf("--run %d", runIndex),
+		fmt.Sprintf("--suite-runs %d", mbConf.SuiteRuns),
 		fmt.Sprintf("--git-repository='%s' --v1='%s' --v2='%s'", mbConf.Repository, mbConf.V1, mbConf.V2),
 	}
 	if mbConf.ExcludeFilter != "" {

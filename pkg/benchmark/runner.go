@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
@@ -16,12 +17,12 @@ import (
 )
 
 const (
-	Timeout        = 60
+	TimeoutMinutes = 10
 	ExecutionCount = 5
 )
 
 var (
-	timeoutArg = fmt.Sprintf("-timeout=%ds", Timeout)
+	timeoutArg = fmt.Sprintf("-timeout=%dm", TimeoutMinutes)
 	countArg   = fmt.Sprintf("-count=%d", ExecutionCount)
 )
 
@@ -118,6 +119,7 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 
 	errCh := make(chan error, 1)
 	go func() {
+		log.Infof("       |--> go %s", strings.Join(args, " "))
 		if err := cmd.Run(); err != nil {
 			errCh <- err
 		}
