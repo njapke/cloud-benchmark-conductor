@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -13,7 +13,6 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/gcloud/run"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 )
 
 func applicationBenchmarkCmd(log *logger.Logger) *cobra.Command {
@@ -25,30 +24,30 @@ func applicationBenchmarkCmd(log *logger.Logger) *cobra.Command {
 	}
 }
 
-func runWrk(ctx context.Context, log *logger.Logger, service gcloud.Service, id, endpoint string) error {
-	instance, err := service.GetOrCreateInstance(ctx, "wrk-"+id)
-	if err != nil {
-		return err
-	}
-	defer instance.Close()
-	logFn := func(stdout, stderr string) {
-		log.Infof("|wrk:%s| %s%s", endpoint, stdout, stderr)
-	}
-	err = instance.RunWithLogger(ctx, logFn, "sudo apt-get update")
-	if err != nil {
-		return err
-	}
-	err = instance.RunWithLogger(ctx, logFn, "sudo apt-get -y install wrk")
-	if err != nil {
-		return err
-	}
-	stdout, stderr, err := instance.Run(ctx, "wrk -t5 -c10 -d10s http://"+endpoint+"/")
-	if err != nil {
-		return fmt.Errorf("error running wrk: %w STDOUT: %s\nSTDERR: %s", err, stdout, stderr)
-	}
-	logFn(stdout, stderr)
-	return nil
-}
+// func runWrk(ctx context.Context, log *logger.Logger, service gcloud.Service, id, endpoint string) error {
+// 	instance, err := service.GetOrCreateInstance(ctx, "wrk-"+id)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer instance.Close()
+// 	logFn := func(stdout, stderr string) {
+// 		log.Infof("|wrk:%s| %s%s", endpoint, stdout, stderr)
+// 	}
+// 	for i := 0; i < 100; i++ {
+// 		select {
+// 		case <-ctx.Done():
+// 			return ctx.Err()
+// 		default:
+// 		}
+// 		stdout, stderr, err := instance.Run(ctx, "curl http://"+endpoint+"/")
+// 		if err != nil {
+// 			log.Error(err)
+// 			<-time.After(time.Second)
+// 		}
+// 		logFn(stdout, stderr)
+// 	}
+// 	return nil
+// }
 
 func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	conf, err := config.NewConductorConfig(cmd)
@@ -91,17 +90,21 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 	}
 
 	log.Infof("starting benchmarks on internal IP: %s", internalIP)
-	errGroup, groupCtx := errgroup.WithContext(ctx)
-	errGroup.Go(func() error {
-		return runWrk(groupCtx, log, service, "1", internalIP+":3000")
-	})
-	errGroup.Go(func() error {
-		return runWrk(groupCtx, log, service, "2", internalIP+":3001")
-	})
-
-	err = errGroup.Wait()
-	if err != nil {
-		return err
+	// errGroup, groupCtx := errgroup.WithContext(ctx)
+	// errGroup.Go(func() error {
+	// 	return runWrk(groupCtx, log, service, "1", internalIP+":3000")
+	// })
+	// errGroup.Go(func() error {
+	// 	return runWrk(groupCtx, log, service, "2", internalIP+":3001")
+	// })
+	//
+	// err = errGroup.Wait()
+	// if err != nil {
+	// 	return err
+	// }
+	select {
+	case <-ctx.Done():
+	case <-time.After(10 * time.Minute):
 	}
 	log.Infof("stopping applications...")
 	cancel()
