@@ -29,6 +29,7 @@ type ConductorApplicationConfig struct {
 	Repository string
 	V1, V2     string
 	Package    string
+	LogFilter  string `yaml:"logFilter"`
 }
 
 type ConductorConfig struct {
@@ -110,6 +111,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			V1:         viper.GetString("application.v1"),
 			V2:         viper.GetString("application.v2"),
 			Package:    viper.GetString("application.package"),
+			LogFilter:  viper.GetString("application.logFilter"),
 		},
 	}
 
@@ -162,6 +164,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-v1", "", "v1 of the application to run")
 	cmd.PersistentFlags().String("application-v2", "", "v2 of the application to run")
 	cmd.PersistentFlags().String("application-package", "./", "package that should be build and run")
+	cmd.PersistentFlags().String("application-log-filter", "", "filter application logs")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -184,4 +187,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.v1", cmd.PersistentFlags().Lookup("application-v1")))
 	cli.Must(viper.BindPFlag("application.v2", cmd.PersistentFlags().Lookup("application-v2")))
 	cli.Must(viper.BindPFlag("application.package", cmd.PersistentFlags().Lookup("application-package")))
+	cli.Must(viper.BindPFlag("application.logFilter", cmd.PersistentFlags().Lookup("application-log-filter")))
 }
