@@ -36,6 +36,7 @@ func Application(ctx context.Context, log *logger.Logger, service gcloud.Service
 	// close open ssh connection
 	defer instance.Close()
 
+	log.Infof("[%s] external IP: %s", runnerName, instance.ExternalIP())
 	var logFilterRe *regexp.Regexp
 	if appConf.LogFilter != "" {
 		logFilterRe, err = regexp.Compile(appConf.LogFilter)

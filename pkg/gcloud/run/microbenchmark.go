@@ -74,6 +74,7 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service gcloud.Serv
 	// close open ssh connection
 	defer instance.Close()
 
+	log.Infof("[%s] external IP: %s", runnerName, instance.ExternalIP())
 	log.Infof("[%s] setting up instance...", runnerName)
 	err = instance.ExecuteActions(ctx,
 		actions.NewActionInstallGo(log),
