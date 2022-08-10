@@ -19,6 +19,7 @@ type Instance interface {
 	Config() *config.ConductorConfig
 	Name() string
 	ExternalIP() string
+	InternalIP() string
 	SSHEndpoint() string
 	LogPrefix() string
 	RunWithLogger(ctx context.Context, logger LoggerFunc, cmd string) error
@@ -51,6 +52,11 @@ func (i *instance) Name() string {
 // ExternalIP returns the external IP of the instance
 func (i *instance) ExternalIP() string {
 	return *i.internalInstance.NetworkInterfaces[0].AccessConfigs[0].NatIP
+}
+
+// InternalIP returns the external IP of the instance
+func (i *instance) InternalIP() string {
+	return *i.internalInstance.NetworkInterfaces[0].NetworkIP
 }
 
 // SSHEndpoint returns the public SSH endpoint of the instance
