@@ -83,3 +83,11 @@ func GetRelativePath(p string) string {
 	}
 	return relP
 }
+
+func GetAbsolutePath(p string) string {
+	absP, err := filepath.Abs(p)
+	if err != nil {
+		return p
+	}
+	return absP
+}
