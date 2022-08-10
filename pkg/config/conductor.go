@@ -24,6 +24,13 @@ type ConductorMicrobenchmarkConfig struct {
 	Outputs       []string `yaml:"outputs"`
 }
 
+type ConductorApplicationConfig struct {
+	Name       string
+	Repository string
+	V1, V2     string
+	Package    string
+}
+
 type ConductorConfig struct {
 	Project        string
 	Region         string
@@ -34,6 +41,7 @@ type ConductorConfig struct {
 	GoVersion      string     `yaml:"goVersion"`
 	Timeout        time.Duration
 	Microbenchmark *ConductorMicrobenchmarkConfig
+	Application    *ConductorApplicationConfig
 }
 
 func (c *ConductorConfig) Validate() error {
@@ -63,6 +71,16 @@ func (c *ConductorConfig) Validate() error {
 	if c.Microbenchmark.V2 == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v2"))
 	}
+
+	if c.Application.Repository == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application repository"))
+	}
+	if c.Application.V1 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application v1"))
+	}
+	if c.Application.V2 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application v2"))
+	}
 	return confErr
 }
 
@@ -85,6 +103,13 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
 			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
 			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
+		},
+		Application: &ConductorApplicationConfig{
+			Name:       viper.GetString("application.name"),
+			Repository: viper.GetString("application.repository"),
+			V1:         viper.GetString("application.v1"),
+			V2:         viper.GetString("application.v2"),
+			Package:    viper.GetString("application.package"),
 		},
 	}
 
@@ -132,6 +157,11 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("microbenchmark-include-filter", "", "include filter for the microbenchmark")
 	cmd.PersistentFlags().StringArray("microbenchmark-output", []string{"-"}, "outputs of the microbenchmark")
 	cmd.PersistentFlags().Duration("timeout", 30*time.Minute, "timeout for the benchmark execution")
+	cmd.PersistentFlags().String("application-name", "app", "name of the application")
+	cmd.PersistentFlags().String("application-repository", "", "repository of the application")
+	cmd.PersistentFlags().String("application-v1", "", "v1 of the application to run")
+	cmd.PersistentFlags().String("application-v2", "", "v2 of the application to run")
+	cmd.PersistentFlags().String("application-package", "./", "package that should be build and run")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -149,4 +179,9 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("microbenchmark.includeFilter", cmd.PersistentFlags().Lookup("microbenchmark-include-filter")))
 	cli.Must(viper.BindPFlag("microbenchmark.outputs", cmd.PersistentFlags().Lookup("microbenchmark-output")))
 	cli.Must(viper.BindPFlag("timeout", cmd.PersistentFlags().Lookup("timeout")))
+	cli.Must(viper.BindPFlag("application.name", cmd.PersistentFlags().Lookup("application-name")))
+	cli.Must(viper.BindPFlag("application.repository", cmd.PersistentFlags().Lookup("application-repository")))
+	cli.Must(viper.BindPFlag("application.v1", cmd.PersistentFlags().Lookup("application-v1")))
+	cli.Must(viper.BindPFlag("application.v2", cmd.PersistentFlags().Lookup("application-v2")))
+	cli.Must(viper.BindPFlag("application.package", cmd.PersistentFlags().Lookup("application-package")))
 }
