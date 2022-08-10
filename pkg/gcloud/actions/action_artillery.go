@@ -58,9 +58,14 @@ func (a *actionInstallArtillery) Run(ctx context.Context, instance gcloud.Instan
 		return nil
 	}
 
-	a.log.Infof("%s installing or updating artillery...", lp)
-	// TODO: very slow, maybe introduce caching?
-	stdout, stderr, err = instance.Run(ctx, "sudo npm install --location=global artillery@latest")
+	a.log.Infof("%s installing artillery...", lp)
+	// create new cache archive with: sudo npm install --location=global artillery@latest && tar cvzf ~/artillery.tgz ./artillery/
+	installArtillery := []string{
+		"gsutil cp gs://mt-npm-cache/artillery.tgz ./",
+		"sudo tar xzf ./artillery.tgz -C /usr/lib/node_modules/",
+		"sudo ln -s /usr/lib/node_modules/artillery/bin/run /usr/bin/artillery",
+	}
+	stdout, stderr, err = instance.Run(ctx, strings.Join(installArtillery, " && "))
 	if err != nil {
 		return fmt.Errorf("failed to install artillery: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}
