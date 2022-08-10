@@ -2,16 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/signal"
-	"strings"
 	"syscall"
 
-	"github.com/christophwitzko/master-thesis/pkg/assets"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
-	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/run"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -74,38 +73,40 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 	}
 	log.Info("running application benchmarks...")
 
-	appInstance, err := service.GetOrCreateInstance(ctx, "apps")
-	if err != nil {
-		return err
-	}
-	defer appInstance.Close()
+	internalIPCh := make(chan string)
+	appErrCh := make(chan error)
+	go func() {
+		defer close(appErrCh)
+		appErr := run.Application(ctx, log, service, internalIPCh)
+		if appErr != nil && !errors.Is(appErr, context.Canceled) {
+			log.Errorf("error running application: %s", appErr)
+		}
+		appErrCh <- appErr
+	}()
 
-	err = appInstance.ExecuteActions(ctx,
-		actions.NewActionInstallGo(log),
-		actions.NewActionInstallBinary(log, "application-runner", assets.ApplicationRunner),
-	)
-	if err != nil {
-		return err
+	internalIP := <-internalIPCh
+	if internalIP == "" {
+		// some error happened during application setup
+		return <-appErrCh
 	}
 
-	errGroup, ctx := errgroup.WithContext(ctx)
+	log.Infof("starting benchmarks on internal IP: %s", internalIP)
+	errGroup, groupCtx := errgroup.WithContext(ctx)
 	errGroup.Go(func() error {
-		return appInstance.RunWithLogger(ctx, func(stdout, stderr string) {
-			if strings.Contains(stderr, "GET") {
-				return
-			}
-			log.Infof("|app-runner| %s%s", stdout, stderr)
-		}, "application-runner --v1 main --v2 main --git-repository='https://github.com/christophwitzko/go-benchmark-tests.git' --bind 0.0.0.0")
+		return runWrk(groupCtx, log, service, "1", internalIP+":3000")
 	})
 	errGroup.Go(func() error {
-		return runWrk(ctx, log, service, "1", appInstance.InternalIP()+":3000")
-	})
-	errGroup.Go(func() error {
-		return runWrk(ctx, log, service, "2", appInstance.InternalIP()+":3001")
+		return runWrk(groupCtx, log, service, "2", internalIP+":3001")
 	})
 
 	err = errGroup.Wait()
 	if err != nil {
+		return err
+	}
+	log.Infof("stopping applications...")
+	cancel()
+	err = <-appErrCh
+	if err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
 	log.Info("done")
