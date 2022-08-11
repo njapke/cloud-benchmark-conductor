@@ -7,10 +7,10 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/merror"
+	"github.com/christophwitzko/master-thesis/pkg/netutil"
 	"golang.org/x/crypto/ssh"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
@@ -34,7 +34,6 @@ type instance struct {
 	config           *config.ConductorConfig
 	internalInstance *computepb.Instance
 	sshPortReady     bool
-	sshPortMutex     sync.Mutex
 	sshClient        *sshClient
 	sshClientMutex   sync.Mutex
 }
@@ -70,28 +69,16 @@ func (i *instance) LogPrefix() string {
 }
 
 func (i *instance) waitForSSHPortReady(ctx context.Context) error {
-	i.sshPortMutex.Lock()
-	defer i.sshPortMutex.Unlock()
-	if err := ctx.Err(); err != nil {
-		return err
-	}
 	if i.sshPortReady {
 		return nil
 	}
-	publicSSHEndpoint := i.SSHEndpoint()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(time.Second):
-			conn, err := net.DialTimeout("tcp4", publicSSHEndpoint, time.Second)
-			if err == nil {
-				_ = conn.Close()
-				i.sshPortReady = true
-				return nil
-			}
-		}
+
+	err := netutil.WaitForPortOpen(ctx, i.SSHEndpoint())
+	if err != nil {
+		return err
 	}
+	i.sshPortReady = true
+	return nil
 }
 
 func (i *instance) newSSHClient(ctx context.Context) (*sshClient, error) {
