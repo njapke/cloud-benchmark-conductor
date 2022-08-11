@@ -74,7 +74,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
+	// TODO: wait for targets to be ready
 	errGroup, ctx := errgroup.WithContext(ctx)
 	for _, target := range targets {
 		target := target

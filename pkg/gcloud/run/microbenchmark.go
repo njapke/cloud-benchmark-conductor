@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/assets"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -15,21 +14,19 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
 
-var currentTimestamp = time.Now().Format(time.RFC3339)
-
-type tmplData struct {
+type mbTmplData struct {
 	Timestamp string
 	Name      string
 	RunIndex  int
 }
 
-func applyTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int, tmplStr string) (string, error) {
+func applyMbOutputTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int, tmplStr string) (string, error) {
 	tmpl, err := template.New("tmpl").Parse(tmplStr)
 	if err != nil {
 		return "", err
 	}
 	buf := &bytes.Buffer{}
-	err = tmpl.Execute(buf, tmplData{
+	err = tmpl.Execute(buf, mbTmplData{
 		Timestamp: currentTimestamp,
 		Name:      mbConf.Name,
 		RunIndex:  runIndex,
@@ -54,7 +51,7 @@ func getMbRunnerCmd(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) 
 		cmd = append(cmd, fmt.Sprintf("--include-filter='%s'", mbConf.IncludeFilter))
 	}
 	for _, output := range mbConf.Outputs {
-		finalOutput, err := applyTemplate(mbConf, runIndex, output)
+		finalOutput, err := applyMbOutputTemplate(mbConf, runIndex, output)
 		if err != nil {
 			return "", err
 		}

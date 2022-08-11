@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -23,31 +23,6 @@ func applicationBenchmarkCmd(log *logger.Logger) *cobra.Command {
 		Run:     cli.WrapRunE(log, applicationBenchmarkRun),
 	}
 }
-
-// func runWrk(ctx context.Context, log *logger.Logger, service gcloud.Service, id, endpoint string) error {
-// 	instance, err := service.GetOrCreateInstance(ctx, "wrk-"+id)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer instance.Close()
-// 	logFn := func(stdout, stderr string) {
-// 		log.Infof("|wrk:%s| %s%s", endpoint, stdout, stderr)
-// 	}
-// 	for i := 0; i < 100; i++ {
-// 		select {
-// 		case <-ctx.Done():
-// 			return ctx.Err()
-// 		default:
-// 		}
-// 		stdout, stderr, err := instance.Run(ctx, "curl http://"+endpoint+"/")
-// 		if err != nil {
-// 			log.Error(err)
-// 			<-time.After(time.Second)
-// 		}
-// 		logFn(stdout, stderr)
-// 	}
-// 	return nil
-// }
 
 func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	conf, err := config.NewConductorConfig(cmd)
@@ -89,22 +64,14 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 		return <-appErrCh
 	}
 
+	targets := []string{
+		fmt.Sprintf("%s:3000", internalIP),
+		fmt.Sprintf("%s:3001", internalIP),
+	}
 	log.Infof("starting benchmarks on internal IP: %s", internalIP)
-	// errGroup, groupCtx := errgroup.WithContext(ctx)
-	// errGroup.Go(func() error {
-	// 	return runWrk(groupCtx, log, service, "1", internalIP+":3000")
-	// })
-	// errGroup.Go(func() error {
-	// 	return runWrk(groupCtx, log, service, "2", internalIP+":3001")
-	// })
-	//
-	// err = errGroup.Wait()
-	// if err != nil {
-	// 	return err
-	// }
-	select {
-	case <-ctx.Done():
-	case <-time.After(10 * time.Minute):
+	err = run.ApplicationBenchmark(ctx, log, service, targets)
+	if err != nil {
+		log.Errorf("error running application benchmark: %s", err)
 	}
 	log.Infof("stopping applications...")
 	cancel()

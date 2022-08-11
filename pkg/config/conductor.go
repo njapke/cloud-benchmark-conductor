@@ -36,6 +36,7 @@ type ConductorApplicationConfig struct {
 type ConductorApplicationBenchmarkConfig struct {
 	Config    string
 	Reference string
+	Output    string
 }
 
 type ConductorConfig struct {
@@ -121,6 +122,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			Benchmark: &ConductorApplicationBenchmarkConfig{
 				Config:    viper.GetString("application.benchmark.config"),
 				Reference: viper.GetString("application.benchmark.reference"),
+				Output:    viper.GetString("application.benchmark.output"),
 			},
 		},
 	}
@@ -177,6 +179,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-log-filter", "", "filter application logs")
 	cmd.PersistentFlags().String("application-benchmark-config", "", "application benchmark config")
 	cmd.PersistentFlags().String("application-benchmark-reference", "", "application benchmark reference")
+	cmd.PersistentFlags().String("application-benchmark-output", "", "application benchmark output path")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -202,4 +205,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.logFilter", cmd.PersistentFlags().Lookup("application-log-filter")))
 	cli.Must(viper.BindPFlag("application.benchmark.config", cmd.PersistentFlags().Lookup("application-benchmark-config")))
 	cli.Must(viper.BindPFlag("application.benchmark.reference", cmd.PersistentFlags().Lookup("application-benchmark-reference")))
+	cli.Must(viper.BindPFlag("application.benchmark.output", cmd.PersistentFlags().Lookup("application-benchmark-output")))
 }
