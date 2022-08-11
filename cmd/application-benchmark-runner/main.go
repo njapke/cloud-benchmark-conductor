@@ -12,6 +12,7 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/application/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/netutil"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -74,12 +75,26 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// TODO: wait for targets to be ready
-	errGroup, ctx := errgroup.WithContext(ctx)
+
+	log.Info("waiting for targets to be ready....")
+	errGroup, groupCtx := errgroup.WithContext(ctx)
 	for _, target := range targets {
 		target := target
 		errGroup.Go(func() error {
-			return benchmark.RunArtillery(ctx, log, appBenchConfig, target)
+			return netutil.WaitForPortOpen(groupCtx, target)
+		})
+	}
+	err = errGroup.Wait()
+	if err != nil {
+		return err
+	}
+
+	log.Info("starting artillery...")
+	errGroup, groupCtx = errgroup.WithContext(ctx)
+	for _, target := range targets {
+		target := target
+		errGroup.Go(func() error {
+			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, target)
 		})
 	}
 	err = errGroup.Wait()
