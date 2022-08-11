@@ -20,7 +20,7 @@ microbenchmark:
   v1: v1
   v2: v2
   outputs:
-    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
   includeFilter: "^foo.*$"
 #microbenchmark:
 #  name: flight-booking-service
@@ -30,7 +30,7 @@ microbenchmark:
 #  v1: main
 #  v2: main
 #  outputs:
-#    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+#    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
 #  excludeFilter: "^chi.*$"
 application:
@@ -43,4 +43,4 @@ application:
   benchmark:
     config: ./artillery/test.yaml
     reference: main
-    output: gs://ab-results/{{.Name}}/{{.Timestamp}}
+    output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
