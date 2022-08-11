@@ -20,8 +20,7 @@ microbenchmark:
   v1: v1
   v2: v2
   outputs:
-    #    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?chunked=true&new-chunk-fn=suite&no-csv-header=true
-    - gs://mb-test-results/{{.Name}}/run-{{.RunIndex}}.csv?no-csv-header=true
+    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
   includeFilter: "^foo.*$"
 #microbenchmark:
 #  name: flight-booking-service
@@ -31,8 +30,8 @@ microbenchmark:
 #  v1: main
 #  v2: main
 #  outputs:
-#    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?no-csv-header=true
-##  includeFilter: "^database.*$"
+#    - gs://mb-test-results/{{.Name}}/{{.Timestamp}}-run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+#  includeFilter: "^database.*$"
 #  excludeFilter: "^chi.*$"
 application:
   name: go-benchmark-tests
@@ -41,3 +40,7 @@ application:
   v2: main
   package: ./
   logFilter: GET
+  benchmark:
+    config: ./artillery/test.yaml
+    reference: main
+    output: gs://ab-results/{{.Name}}/{{.Timestamp}}
