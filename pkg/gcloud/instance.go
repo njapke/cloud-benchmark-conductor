@@ -30,6 +30,8 @@ type Instance interface {
 	Close() error
 }
 
+var _ Instance = (*instance)(nil)
+
 type instance struct {
 	config           *config.ConductorConfig
 	internalInstance *computepb.Instance

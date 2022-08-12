@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
@@ -38,10 +37,13 @@ type Service interface {
 	GetInstance(ctx context.Context, name string) (Instance, error)
 	GetOrCreateInstance(ctx context.Context, name string) (Instance, error)
 	EnsureFirewallRules(ctx context.Context) error
-	CleanupInstances(ctx context.Context) ([]string, error)
-	CleanupEverything(ctx context.Context) ([]string, error)
+	ListInstances(ctx context.Context) ([]string, error)
+	DeleteInstance(ctx context.Context, instanceName string) error
+	DeleteFirewallRules(ctx context.Context) (bool, error)
 	Close() error
 }
+
+var _ Service = (*service)(nil)
 
 type service struct {
 	config          *config.ConductorConfig
@@ -265,18 +267,30 @@ func (s *service) EnsureFirewallRules(ctx context.Context) error {
 	return insertOp.Wait(ctx)
 }
 
-func (s *service) CleanupInstances(ctx context.Context) ([]string, error) {
+func (s *service) DeleteInstance(ctx context.Context, instanceName string) error {
+	delOp, err := s.instancesClient.Delete(ctx, &computepb.DeleteInstanceRequest{
+		Project:  s.config.Project,
+		Zone:     s.config.Zone,
+		Instance: prefixName(instanceName),
+	})
+	if err != nil {
+		return err
+	}
+
+	err = delOp.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) ListInstances(ctx context.Context) ([]string, error) {
 	instances := s.instancesClient.List(ctx, &computepb.ListInstancesRequest{
 		Project: s.config.Project,
 		Zone:    s.config.Zone,
 		Filter:  proto.String(fmt.Sprintf("labels.%s=true", toolName)),
 	})
-
-	var mErr error
-	var mErrMu sync.Mutex
-	deletedInstances := make([]string, 0)
-	var deletedInstancesMu sync.Mutex
-	var delWg sync.WaitGroup
+	instanceNames := make([]string, 0)
 	for {
 		instance, err := instances.Next()
 		if errors.Is(err, iterator.Done) {
@@ -285,62 +299,26 @@ func (s *service) CleanupInstances(ctx context.Context) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		delWg.Add(1)
-		go func(instanceName string) {
-			defer delWg.Done()
-			delOp, err := s.instancesClient.Delete(ctx, &computepb.DeleteInstanceRequest{
-				Project:  s.config.Project,
-				Zone:     s.config.Zone,
-				Instance: instanceName,
-			})
-			if err != nil {
-				mErrMu.Lock()
-				mErr = multierror.Append(mErr, err)
-				mErrMu.Unlock()
-				return
-			}
-			if err := delOp.Wait(ctx); err != nil {
-				mErrMu.Lock()
-				mErr = multierror.Append(mErr, err)
-				mErrMu.Unlock()
-				return
-			}
-			deletedInstancesMu.Lock()
-			deletedInstances = append(deletedInstances, "instances/"+instanceName)
-			deletedInstancesMu.Unlock()
-		}(*instance.Name)
+		instanceNames = append(instanceNames, *instance.Name)
 	}
-	delWg.Wait()
-	return deletedInstances, mErr
+	return instanceNames, nil
 }
 
-// CleanupEverything deletes all instances and firewall rules created by this service
-func (s *service) CleanupEverything(ctx context.Context) ([]string, error) {
-	var mErr error
-	deletedResources := make([]string, 0)
-	deletedInstances, err := s.CleanupInstances(ctx)
-	if err != nil {
-		mErr = multierror.Append(mErr, err)
-	}
-	if deletedInstances != nil {
-		deletedResources = append(deletedResources, deletedInstances...)
-	}
-
-	_, err = s.firewallClient.Delete(ctx, &computepb.DeleteFirewallRequest{
+func (s *service) DeleteFirewallRules(ctx context.Context) (bool, error) {
+	_, err := s.firewallClient.Delete(ctx, &computepb.DeleteFirewallRequest{
 		Project:  s.config.Project,
 		Firewall: toolName,
 	})
 	if err == nil {
-		deletedResources = append(deletedResources, "firewalls/"+toolName)
-		return deletedResources, mErr
+		return true, nil
 	}
 
 	// ignore 404 errors, as the firewall may not exist
 	var gErr *googleapi.Error
 	if !errors.As(err, &gErr) || gErr.Code != 404 {
-		mErr = multierror.Append(mErr, err)
+		return false, err
 	}
-	return deletedResources, mErr
+	return false, nil
 }
 
 // Close all api clients

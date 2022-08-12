@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func cleanupCmd(log *logger.Logger) *cobra.Command {
@@ -34,18 +37,38 @@ func cleanupRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	log.Info("cleanup started...")
 	cleanupAll := cli.MustGetBool(cmd, "all")
-	var deletedResources []string
-	if cleanupAll {
-		deletedResources, err = service.CleanupEverything(context.Background())
-	} else {
-		log.Info("deleting instances only...")
-		deletedResources, err = service.CleanupInstances(context.Background())
-	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	instanceNames, err := service.ListInstances(ctx)
 	if err != nil {
 		return err
 	}
-	for _, resource := range deletedResources {
-		log.Warnf("deleted: %s", resource)
+
+	log.Info("deleting instances...")
+	errGroup, groupCtx := errgroup.WithContext(ctx)
+	for _, name := range instanceNames {
+		name := name
+		errGroup.Go(func() error {
+			log.Warnf("deleting instance %s", name)
+			return service.DeleteInstance(groupCtx, name)
+		})
+	}
+	err = errGroup.Wait()
+	if err != nil {
+		return err
+	}
+	if cleanupAll {
+		log.Info("deleting firewall rules...")
+		var firewallDeleted bool
+		firewallDeleted, err = service.DeleteFirewallRules(ctx)
+		if err != nil {
+			return err
+		}
+		if firewallDeleted {
+			log.Warn("firewall rules deleted")
+		}
 	}
 	log.Info("cleanup finished")
 	return nil
