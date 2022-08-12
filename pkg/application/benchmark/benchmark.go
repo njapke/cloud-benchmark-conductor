@@ -11,36 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"cloud.google.com/go/storage"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
-
-func uploadDataToBucket(ctx context.Context, config *Config, outputFile string, data []byte) error {
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	// check if bucket exists
-	bucket := client.Bucket(config.outputURL.Host)
-	_, err = bucket.Attrs(ctx)
-	if err != nil {
-		if errors.Is(err, storage.ErrBucketNotExist) {
-			return fmt.Errorf("bucket %s does not exist", config.outputURL.Host)
-		}
-		return err
-	}
-
-	objectName := strings.TrimPrefix(filepath.Join(config.outputURL.Path, outputFile), "/")
-	objectWriter := bucket.Object(objectName).NewWriter(ctx)
-	objectWriter.ContentType = "application/json"
-	_, err = objectWriter.Write(data)
-	if err != nil {
-		return err
-	}
-	return objectWriter.Close()
-}
 
 type Config struct {
 	ConfigFile string
@@ -96,14 +69,16 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 		return nil
 	}
 	log.Infof("[%s] uploading results...", targetEndpoint)
-	outputFileData, err := os.ReadFile(outputFile)
+	outputFileFd, err := os.Open(outputFile)
 	if err != nil {
-		return fmt.Errorf("failed to read output file: %w", err)
+		return fmt.Errorf("failed to open output file: %w", err)
 	}
-	err = uploadDataToBucket(ctx, config, outputFileName, outputFileData)
+	defer outputFileFd.Close()
+	outputFileObjectName := filepath.Join(config.outputURL.Path, outputFileName)
+	err = storage.UploadToBucket(ctx, config.outputURL.Host, filepath.Join(config.outputURL.Path, outputFileName), outputFileFd)
 	if err != nil {
 		return err
 	}
-	log.Infof("[%s] results uploaded to %s/%s", targetEndpoint, config.OutputPath, outputFileName)
+	log.Infof("[%s] results uploaded to gs://%s%s", targetEndpoint, config.outputURL.Host, outputFileObjectName)
 	return nil
 }
