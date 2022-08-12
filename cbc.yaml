@@ -17,11 +17,15 @@ microbenchmark:
   name: go-benchmark-tests
   repository: https://github.com/christophwitzko/go-benchmark-tests.git
   runs: 1
+  suiteRuns: 1
   v1: v1
   v2: v2
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-  includeFilter: "^foo.*$"
+#  includeFilter: "^foo.*$"
+  functions:
+    - main.BenchmarkSplit
+    - foo.BenchmarkStringsCut
 #microbenchmark:
 #  name: flight-booking-service
 #  repository: https://github.com/christophwitzko/flight-booking-service.git

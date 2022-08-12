@@ -19,9 +19,27 @@ type ConductorMicrobenchmarkConfig struct {
 	Runs          int
 	SuiteRuns     int `yaml:"suiteRuns"`
 	V1, V2        string
-	ExcludeFilter string   `yaml:"excludeFilter"`
-	IncludeFilter string   `yaml:"includeFilter"`
+	ExcludeFilter string `yaml:"excludeFilter"`
+	IncludeFilter string `yaml:"includeFilter"`
+	Functions     []string
 	Outputs       []string `yaml:"outputs"`
+}
+
+func (c *ConductorMicrobenchmarkConfig) Validate() error {
+	var confErr error
+	if c.Repository == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark repository"))
+	}
+	if c.V1 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v1"))
+	}
+	if c.V2 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v2"))
+	}
+	if len(c.Functions) != 0 && (c.IncludeFilter != "" || c.ExcludeFilter != "") {
+		confErr = multierror.Append(confErr, fmt.Errorf("cannot use functions and include/exclude filters"))
+	}
+	return confErr
 }
 
 type ConductorApplicationConfig struct {
@@ -33,10 +51,35 @@ type ConductorApplicationConfig struct {
 	Benchmark  *ConductorApplicationBenchmarkConfig
 }
 
+func (c *ConductorApplicationConfig) Validate() error {
+	var confErr error
+	if c.Repository == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application repository"))
+	}
+	if c.V1 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application v1"))
+	}
+	if c.V2 == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application v2"))
+	}
+	if err := c.Benchmark.Validate(); err != nil {
+		confErr = multierror.Append(confErr, err)
+	}
+	return confErr
+}
+
 type ConductorApplicationBenchmarkConfig struct {
 	Config    string
 	Reference string
 	Output    string
+}
+
+func (c *ConductorApplicationBenchmarkConfig) Validate() error {
+	var confErr error
+	if c.Reference == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application benchmark reference"))
+	}
+	return confErr
 }
 
 type ConductorConfig struct {
@@ -70,25 +113,13 @@ func (c *ConductorConfig) Validate() error {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing ssh private key"))
 	}
 
-	if c.Microbenchmark.Repository == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark repository"))
+	if err := c.Microbenchmark.Validate(); err != nil {
+		confErr = multierror.Append(confErr, err)
 	}
-	if c.Microbenchmark.V1 == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v1"))
-	}
-	if c.Microbenchmark.V2 == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark v2"))
+	if err := c.Application.Validate(); err != nil {
+		confErr = multierror.Append(confErr, err)
 	}
 
-	if c.Application.Repository == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing application repository"))
-	}
-	if c.Application.V1 == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing application v1"))
-	}
-	if c.Application.V2 == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing application v2"))
-	}
 	return confErr
 }
 
@@ -110,6 +141,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			V2:            viper.GetString("microbenchmark.v2"),
 			ExcludeFilter: viper.GetString("microbenchmark.excludeFilter"),
 			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
+			Functions:     viper.GetStringSlice("microbenchmark.functions"),
 			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
 		},
 		Application: &ConductorApplicationConfig{
@@ -180,6 +212,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-benchmark-config", "", "application benchmark config")
 	cmd.PersistentFlags().String("application-benchmark-reference", "", "application benchmark reference")
 	cmd.PersistentFlags().String("application-benchmark-output", "", "application benchmark output path")
+	cmd.PersistentFlags().StringArray("microbenchmark-function", []string{}, "functions to include in the microbenchmark")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -206,4 +239,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.benchmark.config", cmd.PersistentFlags().Lookup("application-benchmark-config")))
 	cli.Must(viper.BindPFlag("application.benchmark.reference", cmd.PersistentFlags().Lookup("application-benchmark-reference")))
 	cli.Must(viper.BindPFlag("application.benchmark.output", cmd.PersistentFlags().Lookup("application-benchmark-output")))
+	cli.Must(viper.BindPFlag("microbenchmark.functions", cmd.PersistentFlags().Lookup("microbenchmark-function")))
 }

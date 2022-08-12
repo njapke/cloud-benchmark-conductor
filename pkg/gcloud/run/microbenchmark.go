@@ -50,6 +50,12 @@ func getMbRunnerCmd(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int) 
 	if mbConf.IncludeFilter != "" {
 		cmd = append(cmd, fmt.Sprintf("--include-filter='%s'", mbConf.IncludeFilter))
 	}
+	if len(mbConf.Functions) != 0 {
+		for _, function := range mbConf.Functions {
+			cmd = append(cmd, fmt.Sprintf("--function='%s'", function))
+		}
+	}
+
 	for _, output := range mbConf.Outputs {
 		finalOutput, err := applyMbOutputTemplate(mbConf, runIndex, output)
 		if err != nil {
