@@ -1,44 +1,26 @@
 package output
 
 import (
-	"errors"
-	"fmt"
 	"io"
-	"strings"
 
-	"cloud.google.com/go/storage"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
 	"github.com/hashicorp/go-multierror"
 )
 
 type gcsWriter struct {
-	client *storage.Client
-	writer *storage.Writer
-}
-
-func stripSlashPrefix(s string) string {
-	return strings.TrimPrefix(s, "/")
+	client io.Closer
+	writer io.WriteCloser
 }
 
 func newGCSWriter(config *Output) (io.WriteCloser, error) {
-	client, err := storage.NewClient(config.Context)
+	objectWriter, client, err := storage.NewObjectWriter(config.Context, config.Host, config.GetPath())
 	if err != nil {
 		return nil, err
 	}
-	bucket := client.Bucket(config.Host)
 
-	// check if bucket exists
-	_, err = bucket.Attrs(config.Context)
-	if err != nil {
-		_ = client.Close()
-		if errors.Is(err, storage.ErrBucketNotExist) {
-			return nil, fmt.Errorf("bucket %s does not exist", config.Host)
-		}
-		return nil, err
-	}
-	object := bucket.Object(stripSlashPrefix(config.GetPath()))
 	return &gcsWriter{
 		client: client,
-		writer: object.NewWriter(config.Context),
+		writer: objectWriter,
 	}, nil
 }
 
