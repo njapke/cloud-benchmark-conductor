@@ -83,11 +83,16 @@ func GetFunctions(rootPath string) ([]Function, error) {
 		RootDirectory:   absRootPath,
 		FoundBenchmarks: make([]Function, 0),
 	}
+
+	vendorDir := filepath.Join(absRootPath, "vendor")
 	err = filepath.WalkDir(absRootPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if !d.IsDir() {
+			return nil
+		}
+		if path == vendorDir {
 			return nil
 		}
 		bv.CurrentDirectory = path
