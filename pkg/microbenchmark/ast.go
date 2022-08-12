@@ -1,4 +1,4 @@
-package benchmark
+package microbenchmark
 
 import (
 	"fmt"

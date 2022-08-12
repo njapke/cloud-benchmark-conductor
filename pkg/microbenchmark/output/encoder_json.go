@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 )
 
 type jsonResultEncoder struct {
@@ -20,7 +20,7 @@ func newJSONResultEncoder(config *Output) (ResultEncoder, error) {
 	}, nil
 }
 
-func (j *jsonResultEncoder) Encode(result benchmark.Result) ([]byte, error) {
+func (j *jsonResultEncoder) Encode(result microbenchmark.Result) ([]byte, error) {
 	j.buffer.Reset()
 	if err := j.encoder.Encode(result); err != nil {
 		return nil, err

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 
-	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 )
 
 type csvResultEncoder struct {
@@ -27,10 +27,10 @@ func newCsvResultEncoder(config *Output) (ResultEncoder, error) {
 	return csvEncoder, nil
 }
 
-func (c *csvResultEncoder) Encode(result benchmark.Result) ([]byte, error) {
+func (c *csvResultEncoder) Encode(result microbenchmark.Result) ([]byte, error) {
 	c.buffer.Reset()
 	if !c.hasWrittenHeader {
-		err := c.csvWriter.Write(benchmark.CSVOutputHeader)
+		err := c.csvWriter.Write(microbenchmark.CSVOutputHeader)
 		if err != nil {
 			return nil, err
 		}

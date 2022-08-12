@@ -1,4 +1,4 @@
-package benchmark
+package microbenchmark
 
 import "github.com/hashicorp/go-multierror"
 

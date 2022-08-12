@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/benchmark"
-	"github.com/christophwitzko/master-thesis/pkg/benchmark/output"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark/output"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 )
@@ -51,14 +51,14 @@ func main() {
 	}
 }
 
-func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp string, functions []string) (benchmark.VersionedFunctions, error) {
-	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
+func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp string, functions []string) (microbenchmark.VersionedFunctions, error) {
+	versionedFunctions, err := microbenchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(functions) > 0 {
-		return versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
+		return versionedFunctions.Filter(func(vf microbenchmark.VersionedFunction) bool {
 			fnName := vf.String()
 			for _, fn := range functions {
 				if fn == fnName {
@@ -78,7 +78,7 @@ func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeReg
 	if err != nil {
 		return nil, fmt.Errorf("invalid exclude filter expression %s: %w", excludeRegexp, err)
 	}
-	return versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
+	return versionedFunctions.Filter(func(vf microbenchmark.VersionedFunction) bool {
 		fnName := vf.String()
 		return includeFilter.MatchString(fnName) && !excludeFilter.MatchString(fnName)
 	}), nil
@@ -142,7 +142,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	log.Infof("run index: %d", runIndex)
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := benchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
+		err := microbenchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
 		if err != nil {
 			return err
 		}

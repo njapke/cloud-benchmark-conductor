@@ -3,11 +3,11 @@ package output
 import (
 	"fmt"
 
-	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 )
 
 type ResultEncoder interface {
-	Encode(result benchmark.Result) ([]byte, error)
+	Encode(result microbenchmark.Result) ([]byte, error)
 }
 
 type EncoderFactory func(config *Output) (ResultEncoder, error)

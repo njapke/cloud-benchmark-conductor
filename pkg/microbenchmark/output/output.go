@@ -8,23 +8,23 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/christophwitzko/master-thesis/pkg/benchmark"
+	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 )
 
-type NewChunkFunc func(lastResult, newResult *benchmark.Result) bool
+type NewChunkFunc func(lastResult, newResult *microbenchmark.Result) bool
 
-func NoChunkFn(lastResult, newResult *benchmark.Result) bool {
+func NoChunkFn(lastResult, newResult *microbenchmark.Result) bool {
 	return false
 }
 
-func SuiteChunkFn(lastResult, newResult *benchmark.Result) bool {
+func SuiteChunkFn(lastResult, newResult *microbenchmark.Result) bool {
 	if lastResult == nil {
 		return true
 	}
 	return lastResult.S != newResult.S
 }
 
-func BenchFnChunkFn(lastResult, newResult *benchmark.Result) bool {
+func BenchFnChunkFn(lastResult, newResult *microbenchmark.Result) bool {
 	// always chunk a new suite run
 	if SuiteChunkFn(lastResult, newResult) {
 		return true
@@ -46,9 +46,9 @@ type Output struct {
 	writeMutex sync.Mutex
 
 	chunked    bool
-	newChunkFn func(previous, current *benchmark.Result) bool
+	newChunkFn func(previous, current *microbenchmark.Result) bool
 	chunkIndex uint64
-	lastResult *benchmark.Result
+	lastResult *microbenchmark.Result
 }
 
 func newOutput(ctx context.Context, outputPath, defaultType string) (*Output, error) {
@@ -124,7 +124,7 @@ func (o *Output) GetPath() string {
 	return fmt.Sprintf("%s.%04d", o.path, o.chunkIndex)
 }
 
-func (o *Output) Write(result benchmark.Result) error {
+func (o *Output) Write(result microbenchmark.Result) error {
 	o.writeMutex.Lock()
 	defer o.writeMutex.Unlock()
 
@@ -165,8 +165,8 @@ func (o *Output) Close() error {
 	return nil
 }
 
-func New(ctx context.Context, outputPaths []string, defaultType string) (benchmark.ResultWriter, error) {
-	resultWriters := make([]benchmark.ResultWriter, 0, len(outputPaths))
+func New(ctx context.Context, outputPaths []string, defaultType string) (microbenchmark.ResultWriter, error) {
+	resultWriters := make([]microbenchmark.ResultWriter, 0, len(outputPaths))
 	for _, outputPath := range outputPaths {
 		out, err := newOutput(ctx, outputPath, defaultType)
 		if err != nil {
@@ -174,5 +174,5 @@ func New(ctx context.Context, outputPaths []string, defaultType string) (benchma
 		}
 		resultWriters = append(resultWriters, out)
 	}
-	return benchmark.NewMultiResultWriter(resultWriters), nil
+	return microbenchmark.NewMultiResultWriter(resultWriters), nil
 }
