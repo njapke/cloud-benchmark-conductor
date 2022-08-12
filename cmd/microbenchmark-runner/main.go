@@ -43,13 +43,33 @@ func main() {
 
 	rootCmd.Flags().String("include-filter", ".*", "regular expression to filter packages or functions")
 	rootCmd.Flags().String("exclude-filter", "^$", "regular expression to exclude packages or functions")
-
+	rootCmd.Flags().StringArray("function", []string{}, "specific functions to benchmark")
+	rootCmd.MarkFlagsMutuallyExclusive("function", "include-filter")
+	rootCmd.MarkFlagsMutuallyExclusive("function", "exclude-filter")
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp string) (benchmark.VersionedFunctions, error) {
+func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp string, functions []string) (benchmark.VersionedFunctions, error) {
+	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(functions) > 0 {
+		return versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
+			fnName := vf.String()
+			for _, fn := range functions {
+				if fn == fnName {
+					return true
+				}
+			}
+			return false
+		}), nil
+	}
+
+	// using include/exclude filters
 	includeFilter, err := regexp.Compile(includeRegexp)
 	if err != nil {
 		return nil, fmt.Errorf("invalid include filter expression %s: %w", includeRegexp, err)
@@ -58,11 +78,6 @@ func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeReg
 	if err != nil {
 		return nil, fmt.Errorf("invalid exclude filter expression %s: %w", excludeRegexp, err)
 	}
-	versionedFunctions, err := benchmark.CombinedFunctionsFromPaths(sourcePathV1, sourcePathV2)
-	if err != nil {
-		return nil, err
-	}
-
 	return versionedFunctions.Filter(func(vf benchmark.VersionedFunction) bool {
 		fnName := vf.String()
 		return includeFilter.MatchString(fnName) && !excludeFilter.MatchString(fnName)
@@ -81,6 +96,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	outputPaths := cli.MustGetStringArray(cmd, "output")
 	outputFormatJSON := cli.MustGetBool(cmd, "json")
 	outputFormatCSV := cli.MustGetBool(cmd, "csv")
+	functions := cli.MustGetStringArray(cmd, "function")
 
 	if !outputFormatCSV && !outputFormatJSON {
 		return fmt.Errorf("either --json or --csv must be set to true")
@@ -101,7 +117,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	versionedFunctions, err := getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp)
+	versionedFunctions, err := getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeRegexp, functions)
 	if err != nil {
 		return err
 	}
