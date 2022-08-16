@@ -2,8 +2,8 @@
 project: mt-benchmarks
 region: europe-west1
 zone: europe-west1-b
-#instanceType: e2-standard-4
-instanceType: f1-micro
+instanceType: e2-standard-4
+#instanceType: f1-micro
 sshPrivateKey: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
@@ -13,37 +13,47 @@ sshPrivateKey: |
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
 goVersion: 1.19
-microbenchmark:
-  name: go-benchmark-tests
-  repository: https://github.com/christophwitzko/go-benchmark-tests.git
-  runs: 1
-  suiteRuns: 1
-  v1: v1
-  v2: v2
-  outputs:
-    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-#  includeFilter: "^foo.*$"
-  functions:
-    - main.BenchmarkSplit
-    - foo.BenchmarkStringsCut
 #microbenchmark:
-#  name: flight-booking-service
-#  repository: https://github.com/christophwitzko/flight-booking-service.git
+#  name: go-benchmark-tests
+#  repository: https://github.com/christophwitzko/go-benchmark-tests.git
 #  runs: 1
 #  suiteRuns: 1
-#  v1: main
-#  v2: main
+#  v1: v1
+#  v2: v2
 #  outputs:
 #    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-#  includeFilter: "^database.*$"
-#  excludeFilter: "^chi.*$"
-application:
-  name: go-benchmark-tests
-  repository: https://github.com/christophwitzko/go-benchmark-tests.git
+##  includeFilter: "^foo.*$"
+#  functions:
+#    - main.BenchmarkSplit
+#    - foo.BenchmarkStringsCut
+microbenchmark:
+  name: flight-booking-service
+  repository: https://github.com/christophwitzko/flight-booking-service.git
+#  runs: 1
+#  suiteRuns: 1
   v1: main
   v2: main
-  package: ./
-  logFilter: GET
+  outputs:
+    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+#  includeFilter: "^database.*$"
+  excludeFilter: "^chi.*$"
+#application:
+#  name: go-benchmark-tests
+#  repository: https://github.com/christophwitzko/go-benchmark-tests.git
+#  v1: main
+#  v2: main
+#  package: ./
+#  logFilter: GET
+#  benchmark:
+#    config: ./artillery/test.yaml
+#    reference: main
+#    output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
+application:
+  name: flight-booking-service
+  repository: https://github.com/christophwitzko/flight-booking-service.git
+  v1: main
+  v2: main
+  package: ./cmd/flight-booking-service
   benchmark:
     config: ./artillery/test.yaml
     reference: main

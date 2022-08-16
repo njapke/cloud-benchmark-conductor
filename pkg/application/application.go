@@ -38,7 +38,7 @@ func Build(ctx context.Context, log *logger.Logger, buildPath, buildPackage, out
 func Run(ctx context.Context, log *logger.Logger, execFile, bindAddress string) error {
 	cmd := exec.Command(execFile)
 	cmd.Dir = filepath.Dir(execFile)
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", fmt.Sprintf("BIND_ADDRESS=%s", bindAddress))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("BIND_ADDRESS=%s", bindAddress), "LOG_LEVEL=info")
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
