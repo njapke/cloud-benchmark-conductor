@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"syscall"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 	"github.com/christophwitzko/master-thesis/pkg/microbenchmark/output"
+	"github.com/christophwitzko/master-thesis/pkg/profile"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 )
@@ -46,6 +48,10 @@ func main() {
 	rootCmd.Flags().StringArray("function", []string{}, "specific functions to benchmark")
 	rootCmd.MarkFlagsMutuallyExclusive("function", "include-filter")
 	rootCmd.MarkFlagsMutuallyExclusive("function", "exclude-filter")
+
+	rootCmd.Flags().Bool("profile", false, "profile each function")
+	rootCmd.Flags().String("profile-output", "./profiles", "output directory for profiling")
+
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -84,6 +90,44 @@ func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeReg
 	}), nil
 }
 
+func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, outputPaths []string, defaultOutputFormat string, suiteRuns, runIndex int) error {
+	resultWriter, err := output.New(ctx, outputPaths, defaultOutputFormat)
+	if err != nil {
+		return fmt.Errorf("failed to open output: %w", err)
+	}
+	defer resultWriter.Close()
+
+	log.Infof("run index: %d", runIndex)
+	for s := 1; s <= suiteRuns; s++ {
+		log.Infof("suite run: %d/%d", s, suiteRuns)
+		err := microbenchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
+		if err != nil {
+			return err
+		}
+	}
+	log.Info("done.")
+	return nil
+}
+
+func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, profileOutput string) error {
+	log.Warn("profiling only functions from version 1")
+	err := setup.CreateDirectory(profileOutput)
+	if err != nil {
+		return fmt.Errorf("failed to create profile output directory: %w", err)
+	}
+	for _, vf := range versionedFunctions {
+		profileFile, err := microbenchmark.RunProfile(ctx, log, vf.V1, profileOutput)
+		if err != nil {
+			return err
+		}
+		err = profile.ToCallGraph(log, profileFile, profileFile+".dot")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
@@ -97,6 +141,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	outputFormatJSON := cli.MustGetBool(cmd, "json")
 	outputFormatCSV := cli.MustGetBool(cmd, "csv")
 	functions := cli.MustGetStringArray(cmd, "function")
+	runProfile := cli.MustGetBool(cmd, "profile")
+	profileOutput := cli.MustGetString(cmd, "profile-output")
 
 	if !outputFormatCSV && !outputFormatJSON {
 		return fmt.Errorf("either --json or --csv must be set to true")
@@ -133,21 +179,9 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	resultWriter, err := output.New(ctx, outputPaths, defaultOutputFormat)
-	if err != nil {
-		return fmt.Errorf("failed to open output: %w", err)
-	}
-	defer resultWriter.Close()
-
-	log.Infof("run index: %d", runIndex)
-	for s := 1; s <= suiteRuns; s++ {
-		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := microbenchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
-		if err != nil {
-			return err
-		}
+	if runProfile {
+		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profileOutput))
 	}
 
-	log.Info("done.")
-	return nil
+	return runMicrobenchmarks(ctx, log, versionedFunctions, outputPaths, defaultOutputFormat, suiteRuns, runIndex)
 }

@@ -155,6 +155,36 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 	return nil
 }
 
+func RunProfile(ctx context.Context, log *logger.Logger, f Function, profileOutputDir string) (string, error) {
+	profileOutputFile := filepath.Join(profileOutputDir, fmt.Sprintf("%s.out", f.String()))
+	args := []string{
+		"test",
+		"-run=^$",
+		"-benchmem",
+		"-benchtime=1s",
+		timeoutArg,
+		fmt.Sprintf("-cpuprofile=%s", profileOutputFile),
+		fmt.Sprintf("-bench=^%s$", f.Name),
+		// package path relative to the root directory
+		"./" + filepath.Dir(f.FileName),
+	}
+
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Dir = f.RootDirectory
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+	logPipeRead, logPipeWrite := io.Pipe()
+	cmd.Stdout = logPipeWrite
+	cmd.Stderr = logPipeWrite
+	defer logPipeWrite.Close()
+	go log.PrefixedReader("|go|", logPipeRead)
+
+	log.Infof("running: go %s", strings.Join(args, " "))
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return profileOutputFile, nil
+}
+
 func RunVersionedFunction(ctx context.Context, rng *rand.Rand, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2

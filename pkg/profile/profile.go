@@ -8,6 +8,7 @@ import (
 )
 
 func ToCallGraph(log *logger.Logger, inputFile, outputFile string) error {
+	log.Infof("|pprof| generating callgraph from profile %s", inputFile)
 	fs := &mockFlagSet{
 		flags: make(map[string]*flagSetFlag),
 		parseHook: func(m *mockFlagSet) []string {
@@ -33,22 +34,21 @@ type logUI struct {
 	log *logger.Logger
 }
 
-func (ui *logUI) sprint(args []interface{}) {
-	ui.log.Infof("pprof: %s", fmt.Sprint(args...))
-}
-
 func (ui *logUI) ReadLine(prompt string) (string, error) { return "", fmt.Errorf("not implemented") }
 
-func (ui *logUI) Print(args ...interface{}) { ui.sprint(args) }
+func (ui *logUI) Print(args ...interface{}) {
+	ui.log.Info(append([]interface{}{"|pprof| "}, args...)...)
+}
 
-func (ui *logUI) PrintErr(args ...interface{}) { ui.sprint(args) }
+func (ui *logUI) PrintErr(args ...interface{}) {
+	ui.Print(args...)
+}
 
 func (ui *logUI) IsTerminal() bool { return false }
 
 func (ui *logUI) WantBrowser() bool { return false }
 
-func (ui *logUI) SetAutoComplete(func(string) string) {
-}
+func (ui *logUI) SetAutoComplete(func(string) string) {}
 
 type flagSetFlag struct {
 	Name  string
