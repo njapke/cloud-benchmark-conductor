@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/storage v1.25.0
 	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/go-git/go-git/v5 v5.4.2
+	github.com/google/pprof v0.0.0-20220816150559-e6338cec2015
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/otiai10/copy v1.7.0
 	github.com/sirupsen/logrus v1.9.0
@@ -42,6 +43,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20220319035150-800ac71e25c2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
