@@ -125,6 +125,7 @@ func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions mi
 			return err
 		}
 	}
+	log.Info("done.")
 	return nil
 }
 
