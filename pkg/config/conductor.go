@@ -209,7 +209,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-v2", "", "v2 of the application to run")
 	cmd.PersistentFlags().String("application-package", "./", "package that should be build and run")
 	cmd.PersistentFlags().String("application-log-filter", "", "filter application logs")
-	cmd.PersistentFlags().String("application-benchmark-config", "", "application benchmark config")
+	cmd.PersistentFlags().String("application-benchmark-config", "./artillery/config.yaml", "application benchmark config")
 	cmd.PersistentFlags().String("application-benchmark-reference", "", "application benchmark reference")
 	cmd.PersistentFlags().String("application-benchmark-output", "", "application benchmark output path")
 	cmd.PersistentFlags().StringArray("microbenchmark-function", []string{}, "functions to include in the microbenchmark")

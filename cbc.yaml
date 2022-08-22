@@ -32,7 +32,7 @@ microbenchmark:
 #  runs: 1
 #  suiteRuns: 1
   v1: main
-  v2: main
+  v2: perf-issue-request-id
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
@@ -52,9 +52,9 @@ application:
   name: flight-booking-service
   repository: https://github.com/christophwitzko/flight-booking-service.git
   v1: main
-  v2: main
+  v2: perf-issue-request-id
   package: ./cmd/flight-booking-service
   benchmark:
-    config: ./artillery/test.yaml
+    config: ./artillery/config.yaml
     reference: main
     output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
