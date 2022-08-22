@@ -2,8 +2,7 @@
 project: mt-benchmarks
 region: europe-west1
 zone: europe-west1-b
-instanceType: e2-standard-4
-#instanceType: f1-micro
+instanceType: n2-highcpu-4
 sshPrivateKey: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
