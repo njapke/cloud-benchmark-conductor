@@ -32,6 +32,7 @@ microbenchmark:
 #  suiteRuns: 1
   v1: main
   v2: perf-issue-clean-path
+#  v2: perf-issue-request-id
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
@@ -52,6 +53,7 @@ application:
   repository: https://github.com/christophwitzko/flight-booking-service.git
   v1: main
   v2: perf-issue-request-id
+#  v2: perf-issue-request-id
   package: ./cmd/flight-booking-service
   env:
     - LOG_LEVEL=info

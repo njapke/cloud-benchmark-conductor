@@ -204,7 +204,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("microbenchmark-exclude-filter", "", "exclude filter for the microbenchmark")
 	cmd.PersistentFlags().String("microbenchmark-include-filter", "", "include filter for the microbenchmark")
 	cmd.PersistentFlags().StringArray("microbenchmark-output", []string{"-"}, "outputs of the microbenchmark")
-	cmd.PersistentFlags().Duration("timeout", 30*time.Minute, "timeout for the benchmark execution")
+	cmd.PersistentFlags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
 	cmd.PersistentFlags().String("application-name", "app", "name of the application")
 	cmd.PersistentFlags().String("application-repository", "", "repository of the application")
 	cmd.PersistentFlags().String("application-v1", "", "v1 of the application to run")
