@@ -35,10 +35,10 @@ func Build(ctx context.Context, log *logger.Logger, buildPath, buildPackage, out
 	return cmd.Run()
 }
 
-func Run(ctx context.Context, log *logger.Logger, execFile, bindAddress string) error {
+func Run(ctx context.Context, log *logger.Logger, execFile string, env []string) error {
 	cmd := exec.Command(execFile)
 	cmd.Dir = filepath.Dir(execFile)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("BIND_ADDRESS=%s", bindAddress), "LOG_LEVEL=info")
+	cmd.Env = append(os.Environ(), env...)
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
@@ -49,7 +49,7 @@ func Run(ctx context.Context, log *logger.Logger, execFile, bindAddress string) 
 	defer logPipeWrite.Close()
 
 	go log.PrefixedReader(fmt.Sprintf("|%s|", filepath.Base(execFile)), logPipeRead)
-	log.Infof("running %s with BIND_ADDRESS=%s", execFile, bindAddress)
+	log.Infof("running %s with env=%v", execFile, env)
 	errCh := make(chan error, 1)
 	go func() {
 		if err := cmd.Run(); err != nil {
