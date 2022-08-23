@@ -35,6 +35,7 @@ func main() {
 	rootCmd.Flags().String("config", "./artillery/config.yaml", "location of the application benchmark config relative to the repository root or provided source path")
 	rootCmd.Flags().StringArray("target", []string{"127.0.0.1:3000"}, "target to run the application benchmark on")
 	rootCmd.Flags().String("results-output", "", "path where the results should be stored [e.g. gs://ab-results/app]")
+	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -48,6 +49,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	relConfigFile := cli.MustGetString(cmd, "config")
 	targets := cli.MustGetStringArray(cmd, "target")
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
+	timeout := cli.MustGetDuration(cmd, "timeout")
 
 	if referenceOrPath == "" {
 		return fmt.Errorf("source path or git reference is required")
@@ -62,7 +64,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	appBenchConfigFile := cli.GetAbsolutePath(filepath.Join(applicationBenchmarkPath, relConfigFile))
 	log.Infof("using application benchmark config file: %s", appBenchConfigFile)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	log.Infof("timeout: %s", timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

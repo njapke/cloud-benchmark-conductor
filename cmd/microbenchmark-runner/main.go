@@ -51,6 +51,7 @@ func main() {
 
 	rootCmd.Flags().Bool("profile", false, "profile each function")
 	rootCmd.Flags().String("profile-output", "./profiles", "output directory for profiling")
+	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -144,6 +145,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	functions := cli.MustGetStringArray(cmd, "function")
 	runProfile := cli.MustGetBool(cmd, "profile")
 	profileOutput := cli.MustGetString(cmd, "profile-output")
+	timeout := cli.MustGetDuration(cmd, "timeout")
 
 	if !outputFormatCSV && !outputFormatJSON {
 		return fmt.Errorf("either --json or --csv must be set to true")
@@ -174,8 +176,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		log.Infof("%s", fn.V1.String())
 	}
 
-	// maximum runtime: 30 minutes
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
+	log.Infof("timeout: %s", timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

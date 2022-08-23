@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/spf13/cobra"
@@ -45,6 +46,12 @@ func MustGetInt(cmd *cobra.Command, name string) int {
 
 func MustGetStringArray(cmd *cobra.Command, name string) []string {
 	val, err := cmd.Flags().GetStringArray(name)
+	Must(err)
+	return val
+}
+
+func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
+	val, err := cmd.Flags().GetDuration(name)
 	Must(err)
 	return val
 }
