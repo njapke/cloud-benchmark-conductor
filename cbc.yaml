@@ -26,14 +26,14 @@ goVersion: 1.19
 #    - main.BenchmarkSplit
 #    - foo.BenchmarkStringsCut
 microbenchmark:
-  name: flight-booking-service
+  name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
 #  runs: 1
 #  suiteRuns: 1
   v1: main
-  v2: perf-issue-request-id
+  v2: perf-issue-clean-path
   outputs:
-    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+    - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
   excludeFilter: "^chi.*$"
 #application:
@@ -48,12 +48,14 @@ microbenchmark:
 #    reference: main
 #    output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
 application:
-  name: flight-booking-service
+  name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
   v1: main
   v2: perf-issue-request-id
   package: ./cmd/flight-booking-service
+  env:
+    - LOG_LEVEL=info
   benchmark:
     config: ./artillery/config.yaml
     reference: main
-    output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
+    output: gs://cbc-results/{{.Name}}/ab-{{.V1}}-{{.V2}}-{{.Timestamp}}

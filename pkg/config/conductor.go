@@ -48,6 +48,7 @@ type ConductorApplicationConfig struct {
 	V1, V2     string
 	Package    string
 	LogFilter  string `yaml:"logFilter"`
+	Env        []string
 	Benchmark  *ConductorApplicationBenchmarkConfig
 }
 
@@ -151,6 +152,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			V2:         viper.GetString("application.v2"),
 			Package:    viper.GetString("application.package"),
 			LogFilter:  viper.GetString("application.logFilter"),
+			Env:        viper.GetStringSlice("application.env"),
 			Benchmark: &ConductorApplicationBenchmarkConfig{
 				Config:    viper.GetString("application.benchmark.config"),
 				Reference: viper.GetString("application.benchmark.reference"),
@@ -213,6 +215,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-benchmark-reference", "", "application benchmark reference")
 	cmd.PersistentFlags().String("application-benchmark-output", "", "application benchmark output path")
 	cmd.PersistentFlags().StringArray("microbenchmark-function", []string{}, "functions to include in the microbenchmark")
+	cmd.PersistentFlags().StringArray("application-env", []string{}, "application environment variables")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -240,4 +243,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.benchmark.reference", cmd.PersistentFlags().Lookup("application-benchmark-reference")))
 	cli.Must(viper.BindPFlag("application.benchmark.output", cmd.PersistentFlags().Lookup("application-benchmark-output")))
 	cli.Must(viper.BindPFlag("microbenchmark.functions", cmd.PersistentFlags().Lookup("microbenchmark-function")))
+	cli.Must(viper.BindPFlag("application.env", cmd.PersistentFlags().Lookup("application-env")))
 }
