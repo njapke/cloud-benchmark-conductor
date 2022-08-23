@@ -12,6 +12,7 @@ sshPrivateKey: |
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
 goVersion: 1.19
+timeout: 90m
 #microbenchmark:
 #  name: go-benchmark-tests
 #  repository: https://github.com/christophwitzko/go-benchmark-tests.git
@@ -52,8 +53,8 @@ application:
   name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
   v1: main
+#  v2: perf-issue-clean-path
   v2: perf-issue-request-id
-#  v2: perf-issue-request-id
   package: ./cmd/flight-booking-service
   env:
     - LOG_LEVEL=info
