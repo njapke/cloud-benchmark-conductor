@@ -17,6 +17,7 @@ import (
 type appTmplData struct {
 	Timestamp string
 	Name      string
+	V1, V2    string
 }
 
 func applyAppBenchOutputTemplate(appConf *config.ConductorApplicationConfig, tmplStr string) (string, error) {
@@ -28,6 +29,8 @@ func applyAppBenchOutputTemplate(appConf *config.ConductorApplicationConfig, tmp
 	err = tmpl.Execute(buf, appTmplData{
 		Timestamp: currentTimestamp,
 		Name:      appConf.Name,
+		V1:        appConf.V1,
+		V2:        appConf.V2,
 	})
 	if err != nil {
 		return "", err

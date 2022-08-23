@@ -18,6 +18,7 @@ type mbTmplData struct {
 	Timestamp string
 	Name      string
 	RunIndex  int
+	V1, V2    string
 }
 
 func applyMbOutputTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runIndex int, tmplStr string) (string, error) {
@@ -30,6 +31,8 @@ func applyMbOutputTemplate(mbConf *config.ConductorMicrobenchmarkConfig, runInde
 		Timestamp: currentTimestamp,
 		Name:      mbConf.Name,
 		RunIndex:  runIndex,
+		V1:        mbConf.V1,
+		V2:        mbConf.V2,
 	})
 	if err != nil {
 		return "", err
