@@ -20,6 +20,9 @@ func getAppRunnerCmd(appConf *config.ConductorApplicationConfig) string {
 		fmt.Sprintf("--application-package %s", appConf.Package),
 		"--bind 0.0.0.0",
 	}
+	for _, env := range appConf.Env {
+		cmd = append(cmd, fmt.Sprintf("--env='%s'", env))
+	}
 	return strings.Join(cmd, " ")
 }
 
