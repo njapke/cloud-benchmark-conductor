@@ -81,6 +81,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	targets := make(map[string]string)
+	outputPaths := make(map[string]string)
 	for _, target := range inputTargets {
 		targetName := target
 		targetEndpoint := target
@@ -88,6 +89,10 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			targetName, targetEndpoint, _ = strings.Cut(target, "=")
 		}
 		targets[targetName] = targetEndpoint
+		outputPaths[targetName] = filepath.Join(
+			filepath.Dir(appBenchConfig.ConfigFile),
+			fmt.Sprintf("%s.json", targetName),
+		)
 		log.Infof("target: %s (%s)", targetEndpoint, targetName)
 	}
 
@@ -117,6 +122,18 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Infof("creating combined results csv...")
+	resultCSV, err := benchmark.ReadArtilleryResultToCSV(outputPaths)
+	if err != nil {
+		return err
+	}
+	log.Infof("uploading combined results...")
+	err = appBenchConfig.UploadToBucket(ctx, "combined.csv", resultCSV)
+	if err != nil {
+		return err
+	}
+	log.Infof("uploaded to %s", appBenchConfig.GetOutputObjectName("combined.csv"))
 	log.Infof("done.")
 	return nil
 }

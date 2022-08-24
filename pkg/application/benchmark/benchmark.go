@@ -39,6 +39,14 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+func (c *Config) GetOutputObjectName(fileName string) string {
+	return fmt.Sprintf("gs://%s%s", c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName))
+}
+
+func (c *Config) UploadToBucket(ctx context.Context, fileName string, inputFile io.Reader) error {
+	return storage.UploadToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), inputFile)
+}
+
 func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targetName, targetEndpoint string) error {
 	configDir := filepath.Dir(config.ConfigFile)
 	outputFileName := fmt.Sprintf("%s.json", targetName)
@@ -65,20 +73,19 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 
 	log.Infof("[%s] artillery run finished", targetName)
 	if config.outputURL == nil {
-		log.Warnf("[%s] no results output configured, skipping upload", targetEndpoint)
+		log.Warnf("[%s] no results output configured, skipping upload", targetName)
 		return nil
 	}
-	log.Infof("[%s] uploading results...", targetEndpoint)
+	log.Infof("[%s] uploading results...", targetName)
 	outputFileFd, err := os.Open(outputFile)
 	if err != nil {
 		return fmt.Errorf("failed to open output file: %w", err)
 	}
 	defer outputFileFd.Close()
-	outputFileObjectName := filepath.Join(config.outputURL.Path, outputFileName)
-	err = storage.UploadToBucket(ctx, config.outputURL.Host, filepath.Join(config.outputURL.Path, outputFileName), outputFileFd)
+	err = config.UploadToBucket(ctx, outputFileName, outputFileFd)
 	if err != nil {
 		return err
 	}
-	log.Infof("[%s] results uploaded to gs://%s%s", targetName, config.outputURL.Host, outputFileObjectName)
+	log.Infof("[%s] results uploaded to %s", targetName, config.GetOutputObjectName(outputFileName))
 	return nil
 }
