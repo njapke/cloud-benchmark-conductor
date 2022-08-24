@@ -5,7 +5,7 @@ type ArtilleryResult struct {
 	Intermediate []ArtilleryMetrics `json:"intermediate"`
 }
 
-type ArtilleryMetricsSummary struct {
+type ArtilleryMetricsHistogram struct {
 	Min    float64 `json:"min"`
 	Max    float64 `json:"max"`
 	Count  float64 `json:"count"`
@@ -19,15 +19,15 @@ type ArtilleryMetricsSummary struct {
 }
 
 type ArtilleryMetrics struct {
-	Counters         map[string]int64                   `json:"counters"`
-	Rates            map[string]int64                   `json:"rates"`
-	FirstCounterAt   int64                              `json:"firstCounterAt"`
-	FirstHistogramAt int64                              `json:"firstHistogramAt"`
-	LastCounterAt    int64                              `json:"lastCounterAt"`
-	LastHistogramAt  int64                              `json:"lastHistogramAt"`
-	FirstMetricAt    int64                              `json:"firstMetricAt"`
-	LastMetricAt     int64                              `json:"lastMetricAt"`
-	Period           interface{}                        `json:"period"`
-	Summaries        map[string]ArtilleryMetricsSummary `json:"summaries"`
-	Histograms       map[string]ArtilleryMetricsSummary `json:"histograms"`
+	Counters         map[string]int64                     `json:"counters"`
+	Rates            map[string]int64                     `json:"rates"`
+	FirstCounterAt   int64                                `json:"firstCounterAt"`
+	FirstHistogramAt int64                                `json:"firstHistogramAt"`
+	LastCounterAt    int64                                `json:"lastCounterAt"`
+	LastHistogramAt  int64                                `json:"lastHistogramAt"`
+	FirstMetricAt    int64                                `json:"firstMetricAt"`
+	LastMetricAt     int64                                `json:"lastMetricAt"`
+	Period           interface{}                          `json:"period"`
+	Summaries        map[string]ArtilleryMetricsHistogram `json:"summaries"`
+	Histograms       map[string]ArtilleryMetricsHistogram `json:"histograms"`
 }

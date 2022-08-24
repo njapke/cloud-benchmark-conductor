@@ -64,9 +64,10 @@ func applicationBenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []stri
 		return <-appErrCh
 	}
 
+	// v1 is always running on port 3000 and v2 on port 3001
 	targets := []string{
-		fmt.Sprintf("%s:3000", internalIP),
-		fmt.Sprintf("%s:3001", internalIP),
+		fmt.Sprintf("v1=%s:3000", internalIP),
+		fmt.Sprintf("v2=%s:3001", internalIP),
 	}
 	log.Infof("starting benchmarks on internal IP: %s", internalIP)
 	err = run.ApplicationBenchmark(ctx, log, service, targets)

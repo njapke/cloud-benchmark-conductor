@@ -39,9 +39,9 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targetEndpoint string) error {
+func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targetName, targetEndpoint string) error {
 	configDir := filepath.Dir(config.ConfigFile)
-	outputFileName := fmt.Sprintf("%s.json", targetEndpoint)
+	outputFileName := fmt.Sprintf("%s.json", targetName)
 	outputFile := filepath.Join(configDir, outputFileName)
 
 	args := []string{
@@ -50,20 +50,20 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 		fmt.Sprintf("--output=%s", outputFile),
 		config.ConfigFile,
 	}
-	log.Infof("[%s] running: artillery %s", targetEndpoint, strings.Join(args, " "))
+	log.Infof("[%s] running: artillery %s", targetName, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, "artillery", args...)
 	cmd.Dir = configDir
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
 	defer logPipeWrite.Close()
-	go log.PrefixedReader(fmt.Sprintf("[%s]", targetEndpoint), logPipeRead)
+	go log.PrefixedReader(fmt.Sprintf("[%s]", targetName), logPipeRead)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("artillery run failed: %w", err)
 	}
 
-	log.Infof("[%s] artillery run finished", targetEndpoint)
+	log.Infof("[%s] artillery run finished", targetName)
 	if config.outputURL == nil {
 		log.Warnf("[%s] no results output configured, skipping upload", targetEndpoint)
 		return nil
@@ -79,6 +79,6 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 	if err != nil {
 		return err
 	}
-	log.Infof("[%s] results uploaded to gs://%s%s", targetEndpoint, config.outputURL.Host, outputFileObjectName)
+	log.Infof("[%s] results uploaded to gs://%s%s", targetName, config.outputURL.Host, outputFileObjectName)
 	return nil
 }

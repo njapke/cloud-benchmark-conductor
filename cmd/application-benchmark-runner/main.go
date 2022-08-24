@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,7 +34,7 @@ func main() {
 	rootCmd.Flags().String("git-repository", "", "git repository to use for installing the applications")
 	rootCmd.Flags().String("benchmark-directory", "/tmp/.appbench", "directory to use for running the application benchmarks")
 	rootCmd.Flags().String("config", "./artillery/config.yaml", "location of the application benchmark config relative to the repository root or provided source path")
-	rootCmd.Flags().StringArray("target", []string{"127.0.0.1:3000"}, "target to run the application benchmark on")
+	rootCmd.Flags().StringArray("target", []string{"v1=127.0.0.1:3000"}, "target to run the application benchmark on")
 	rootCmd.Flags().String("results-output", "", "path where the results should be stored [e.g. gs://ab-results/app]")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
 
@@ -47,7 +48,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	gitRepository := cli.MustGetString(cmd, "git-repository")
 	benchmarkDirectory := cli.MustGetString(cmd, "benchmark-directory")
 	relConfigFile := cli.MustGetString(cmd, "config")
-	targets := cli.MustGetStringArray(cmd, "target")
+	inputTargets := cli.MustGetStringArray(cmd, "target")
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
 
@@ -79,12 +80,23 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	targets := make(map[string]string)
+	for _, target := range inputTargets {
+		targetName := target
+		targetEndpoint := target
+		if strings.Contains(target, "=") {
+			targetName, targetEndpoint, _ = strings.Cut(target, "=")
+		}
+		targets[targetName] = targetEndpoint
+		log.Infof("target: %s (%s)", targetEndpoint, targetName)
+	}
+
 	log.Info("waiting for targets to be ready....")
 	errGroup, groupCtx := errgroup.WithContext(ctx)
-	for _, target := range targets {
-		target := target
+	for _, targetEndpoint := range targets {
+		targetEndpoint := targetEndpoint
 		errGroup.Go(func() error {
-			return netutil.WaitForPortOpen(groupCtx, target)
+			return netutil.WaitForPortOpen(groupCtx, targetEndpoint)
 		})
 	}
 	err = errGroup.Wait()
@@ -94,10 +106,11 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	log.Info("starting artillery...")
 	errGroup, groupCtx = errgroup.WithContext(ctx)
-	for _, target := range targets {
-		target := target
+	for targetName, targetEndpoint := range targets {
+		targetName := targetName
+		targetEndpoint := targetEndpoint
 		errGroup.Go(func() error {
-			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, target)
+			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, targetName, targetEndpoint)
 		})
 	}
 	err = errGroup.Wait()
