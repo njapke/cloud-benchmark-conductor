@@ -13,19 +13,7 @@ sshPrivateKey: |
   -----END OPENSSH PRIVATE KEY-----
 goVersion: 1.19
 timeout: 90m
-#microbenchmark:
-#  name: go-benchmark-tests
-#  repository: https://github.com/christophwitzko/go-benchmark-tests.git
-#  runs: 1
-#  suiteRuns: 1
-#  v1: v1
-#  v2: v2
-#  outputs:
-#    - gs://cbc-results/{{.Name}}/mb-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-##  includeFilter: "^foo.*$"
-#  functions:
-#    - main.BenchmarkSplit
-#    - foo.BenchmarkStringsCut
+
 microbenchmark:
   name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
@@ -38,17 +26,10 @@ microbenchmark:
     - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
   excludeFilter: "^chi.*$"
-#application:
-#  name: go-benchmark-tests
-#  repository: https://github.com/christophwitzko/go-benchmark-tests.git
-#  v1: main
-#  v2: main
-#  package: ./
-#  logFilter: GET
-#  benchmark:
-#    config: ./artillery/test.yaml
-#    reference: main
-#    output: gs://cbc-results/{{.Name}}/ab-{{.Timestamp}}
+#  functions:
+#    - main.BenchmarkSplit
+#    - foo.BenchmarkStringsCut
+
 application:
   name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
