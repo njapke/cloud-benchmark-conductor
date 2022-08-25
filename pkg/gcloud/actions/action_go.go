@@ -7,6 +7,7 @@ import (
 
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 )
 
 type actionInstallGo struct {
@@ -48,15 +49,21 @@ func (a *actionInstallGo) Run(ctx context.Context, instance gcloud.Instance) err
 		return nil
 	}
 
-	a.log.Infof("%s downloading...", lp)
 	goDownloadURL := fmt.Sprintf("https://go.dev/dl/go%s.linux-amd64.tar.gz", desiredGoVersion)
-	stdout, stderr, err := instance.Run(ctx, fmt.Sprintf("curl -SL -o go.tgz %s", goDownloadURL))
+	err = retry.OnError(ctx, a.log, lp, func() error {
+		a.log.Infof("%s downloading...", lp)
+		stdout, stderr, runErr := instance.Run(ctx, fmt.Sprintf("curl -SL -o go.tgz %s", goDownloadURL))
+		if runErr != nil {
+			return fmt.Errorf("failed to download go: %w\nSTDERR: %s\nSTDOUT: %s", runErr, stderr, stdout)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("failed to download go: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
+		return err
 	}
 
 	a.log.Infof("%s installing...", lp)
-	stdout, stderr, err = instance.Run(ctx, "sudo rm -rf  /usr/local/go && sudo tar -C /usr/local -xzf go.tgz")
+	stdout, stderr, err := instance.Run(ctx, "sudo rm -rf  /usr/local/go && sudo tar -C /usr/local -xzf go.tgz")
 	if err != nil {
 		return fmt.Errorf("failed to install go: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}

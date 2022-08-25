@@ -7,6 +7,7 @@ import (
 
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 )
 
 type actionInstallArtillery struct {
@@ -23,6 +24,32 @@ func (a *actionInstallArtillery) Name() string {
 
 const artilleryCheckString = "Artillery Core: 2."
 
+func runInstallNode(ctx context.Context, instance gcloud.Instance, log *logger.Logger, lp string) error {
+	err := retry.OnError(ctx, log, lp, func() error {
+		log.Infof("%s installing nodesource repo...", lp)
+		stdout, stderr, runErr := instance.Run(ctx, "curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -")
+		if runErr != nil {
+			return fmt.Errorf("failed to run nodesource repo: %w\nSTDERR: %s\nSTDOUT: %s", runErr, stderr, stdout)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = retry.OnError(ctx, log, lp, func() error {
+		log.Infof("%s installing node...", lp)
+		stdout, stderr, runErr := instance.Run(ctx, "sudo apt-get install -y nodejs && node -v")
+		if runErr != nil {
+			return fmt.Errorf("failed to run install nodejs: %w\nSTDERR: %s\nSTDOUT: %s", runErr, stderr, stdout)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *actionInstallArtillery) Run(ctx context.Context, instance gcloud.Instance) error {
 	lp := instance.LogPrefix() + "[" + a.Name() + "]"
 	a.log.Infof("%s installing node & artillery...", lp)
@@ -37,15 +64,9 @@ func (a *actionInstallArtillery) Run(ctx context.Context, instance gcloud.Instan
 		a.log.Infof("%s node %s is already installed!", lp, nodeVersion)
 	}
 	if installNode {
-		a.log.Infof("%s installing node...", lp)
-		stdout, stderr, err = instance.Run(ctx, "curl -sL https://deb.nodesource.com/setup_16.x | sudo bash -")
+		err = runInstallNode(ctx, instance, a.log, lp)
 		if err != nil {
-			return fmt.Errorf("failed to run nodesource repo: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
-		}
-
-		stdout, stderr, err = instance.Run(ctx, "sudo apt-get install -y nodejs && node -v")
-		if err != nil {
-			return fmt.Errorf("failed to run install nodejs: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
+			return err
 		}
 	}
 
