@@ -20,3 +20,19 @@ func TestOnError(t *testing.T) {
 	require.Contains(t, hook.LastEntry().Message, "always error")
 	require.Len(t, hook.Entries, 3)
 }
+
+func TestOnErrorFailOnce(t *testing.T) {
+	logrusLogger, hook := test.NewNullLogger()
+	log := &logger.Logger{Logger: logrusLogger}
+	firstRun := true
+	err := OnError(context.Background(), log, "[test]", func() error {
+		if firstRun {
+			firstRun = false
+			return fmt.Errorf("always error")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.Contains(t, hook.LastEntry().Message, "always error")
+	require.Len(t, hook.Entries, 1)
+}
