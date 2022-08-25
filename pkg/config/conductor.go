@@ -15,6 +15,7 @@ import (
 
 type ConductorMicrobenchmarkConfig struct {
 	Name          string
+	InstanceType  string `yaml:"instanceType"`
 	Repository    string
 	Runs          int
 	SuiteRuns     int `yaml:"suiteRuns"`
@@ -27,6 +28,9 @@ type ConductorMicrobenchmarkConfig struct {
 
 func (c *ConductorMicrobenchmarkConfig) Validate() error {
 	var confErr error
+	if c.InstanceType == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark instance type"))
+	}
 	if c.Repository == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing microbenchmark repository"))
 	}
@@ -43,17 +47,21 @@ func (c *ConductorMicrobenchmarkConfig) Validate() error {
 }
 
 type ConductorApplicationConfig struct {
-	Name       string
-	Repository string
-	V1, V2     string
-	Package    string
-	LogFilter  string `yaml:"logFilter"`
-	Env        []string
-	Benchmark  *ConductorApplicationBenchmarkConfig
+	Name         string
+	InstanceType string `yaml:"instanceType"`
+	Repository   string
+	V1, V2       string
+	Package      string
+	LogFilter    string `yaml:"logFilter"`
+	Env          []string
+	Benchmark    *ConductorApplicationBenchmarkConfig
 }
 
 func (c *ConductorApplicationConfig) Validate() error {
 	var confErr error
+	if c.InstanceType == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application instance type"))
+	}
 	if c.Repository == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing application repository"))
 	}
@@ -70,13 +78,17 @@ func (c *ConductorApplicationConfig) Validate() error {
 }
 
 type ConductorApplicationBenchmarkConfig struct {
-	Config    string
-	Reference string
-	Output    string
+	InstanceType string `yaml:"instanceType"`
+	Config       string
+	Reference    string
+	Output       string
 }
 
 func (c *ConductorApplicationBenchmarkConfig) Validate() error {
 	var confErr error
+	if c.InstanceType == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing application benchmark instance type"))
+	}
 	if c.Reference == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing application benchmark reference"))
 	}
@@ -84,16 +96,16 @@ func (c *ConductorApplicationBenchmarkConfig) Validate() error {
 }
 
 type ConductorConfig struct {
-	Project        string
-	Region         string
-	Zone           string
-	InstanceType   string     `yaml:"instanceType"`
-	SSHPrivateKey  string     `yaml:"sshPrivateKey"`
-	SSHSigner      ssh.Signer `yaml:"-"`
-	GoVersion      string     `yaml:"goVersion"`
-	Timeout        time.Duration
-	Microbenchmark *ConductorMicrobenchmarkConfig
-	Application    *ConductorApplicationConfig
+	Project             string
+	Region              string
+	Zone                string
+	DefaultInstanceType string     `yaml:"defaultInstanceType"`
+	SSHPrivateKey       string     `yaml:"sshPrivateKey"`
+	SSHSigner           ssh.Signer `yaml:"-"`
+	GoVersion           string     `yaml:"goVersion"`
+	Timeout             time.Duration
+	Microbenchmark      *ConductorMicrobenchmarkConfig
+	Application         *ConductorApplicationConfig
 }
 
 func (c *ConductorConfig) Validate() error {
@@ -107,8 +119,8 @@ func (c *ConductorConfig) Validate() error {
 	if c.Zone == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing zone"))
 	}
-	if c.InstanceType == "" {
-		confErr = multierror.Append(confErr, fmt.Errorf("missing instance type"))
+	if c.DefaultInstanceType == "" {
+		confErr = multierror.Append(confErr, fmt.Errorf("missing default instance type"))
 	}
 	if c.SSHPrivateKey == "" {
 		confErr = multierror.Append(confErr, fmt.Errorf("missing ssh private key"))
@@ -125,16 +137,31 @@ func (c *ConductorConfig) Validate() error {
 }
 
 func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
+	defaultInstanceType := viper.GetString("defaultInstanceType")
+	microbenchmarkInstanceType := viper.GetString("microbenchmark.instanceType")
+	if microbenchmarkInstanceType == "" {
+		microbenchmarkInstanceType = defaultInstanceType
+	}
+	applicationInstanceType := viper.GetString("application.instanceType")
+	if applicationInstanceType == "" {
+		applicationInstanceType = defaultInstanceType
+	}
+	applicationBenchmarkInstanceType := viper.GetString("application.benchmark.instanceType")
+	if applicationBenchmarkInstanceType == "" {
+		applicationBenchmarkInstanceType = defaultInstanceType
+	}
+
 	c := &ConductorConfig{
-		Project:       viper.GetString("project"),
-		Region:        viper.GetString("region"),
-		Zone:          viper.GetString("zone"),
-		InstanceType:  viper.GetString("instanceType"),
-		SSHPrivateKey: viper.GetString("sshPrivateKey"),
-		GoVersion:     viper.GetString("goVersion"),
-		Timeout:       viper.GetDuration("timeout"),
+		Project:             viper.GetString("project"),
+		Region:              viper.GetString("region"),
+		Zone:                viper.GetString("zone"),
+		DefaultInstanceType: defaultInstanceType,
+		SSHPrivateKey:       viper.GetString("sshPrivateKey"),
+		GoVersion:           viper.GetString("goVersion"),
+		Timeout:             viper.GetDuration("timeout"),
 		Microbenchmark: &ConductorMicrobenchmarkConfig{
 			Name:          viper.GetString("microbenchmark.name"),
+			InstanceType:  microbenchmarkInstanceType,
 			Repository:    viper.GetString("microbenchmark.repository"),
 			Runs:          viper.GetInt("microbenchmark.runs"),
 			SuiteRuns:     viper.GetInt("microbenchmark.suiteRuns"),
@@ -146,17 +173,19 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
 		},
 		Application: &ConductorApplicationConfig{
-			Name:       viper.GetString("application.name"),
-			Repository: viper.GetString("application.repository"),
-			V1:         viper.GetString("application.v1"),
-			V2:         viper.GetString("application.v2"),
-			Package:    viper.GetString("application.package"),
-			LogFilter:  viper.GetString("application.logFilter"),
-			Env:        viper.GetStringSlice("application.env"),
+			Name:         viper.GetString("application.name"),
+			InstanceType: applicationInstanceType,
+			Repository:   viper.GetString("application.repository"),
+			V1:           viper.GetString("application.v1"),
+			V2:           viper.GetString("application.v2"),
+			Package:      viper.GetString("application.package"),
+			LogFilter:    viper.GetString("application.logFilter"),
+			Env:          viper.GetStringSlice("application.env"),
 			Benchmark: &ConductorApplicationBenchmarkConfig{
-				Config:    viper.GetString("application.benchmark.config"),
-				Reference: viper.GetString("application.benchmark.reference"),
-				Output:    viper.GetString("application.benchmark.output"),
+				InstanceType: applicationBenchmarkInstanceType,
+				Config:       viper.GetString("application.benchmark.config"),
+				Reference:    viper.GetString("application.benchmark.reference"),
+				Output:       viper.GetString("application.benchmark.output"),
 			},
 		},
 	}
@@ -193,7 +222,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("region", os.Getenv("CLOUDSDK_COMPUTE_REGION"), "compute region")
 	cmd.PersistentFlags().String("zone", os.Getenv("CLOUDSDK_COMPUTE_ZONE"), "compute zone")
 	cmd.PersistentFlags().StringP("ssh-private-key", "i", "", "path to ssh private key")
-	cmd.PersistentFlags().String("instance-type", "f1-micro", "instance type")
+	cmd.PersistentFlags().String("default-instance-type", "f1-micro", "default instance type")
 	cmd.PersistentFlags().String("go-version", "1.19", "go version")
 	cmd.PersistentFlags().String("microbenchmark-name", "mb", "name of the microbenchmark")
 	cmd.PersistentFlags().String("microbenchmark-repository", "", "repository of the microbenchmark")
@@ -216,12 +245,15 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("application-benchmark-output", "", "application benchmark output path")
 	cmd.PersistentFlags().StringArray("microbenchmark-function", []string{}, "functions to include in the microbenchmark")
 	cmd.PersistentFlags().StringArray("application-env", []string{}, "application environment variables")
+	cmd.PersistentFlags().String("microbenchmark-instance-type", "", "microbenchmark instance type")
+	cmd.PersistentFlags().String("application-instance-type", "", "application instance type")
+	cmd.PersistentFlags().String("application-benchmark-instance-type", "", "application benchmark instance type")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
 	cli.Must(viper.BindPFlag("zone", cmd.PersistentFlags().Lookup("zone")))
 	cli.Must(viper.BindPFlag("sshPrivateKey", cmd.PersistentFlags().Lookup("ssh-private-key")))
-	cli.Must(viper.BindPFlag("instanceType", cmd.PersistentFlags().Lookup("instance-type")))
+	cli.Must(viper.BindPFlag("defaultInstanceType", cmd.PersistentFlags().Lookup("default-instance-type")))
 	cli.Must(viper.BindPFlag("goVersion", cmd.PersistentFlags().Lookup("go-version")))
 	cli.Must(viper.BindPFlag("microbenchmark.name", cmd.PersistentFlags().Lookup("microbenchmark-name")))
 	cli.Must(viper.BindPFlag("microbenchmark.repository", cmd.PersistentFlags().Lookup("microbenchmark-repository")))
@@ -244,4 +276,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.benchmark.output", cmd.PersistentFlags().Lookup("application-benchmark-output")))
 	cli.Must(viper.BindPFlag("microbenchmark.functions", cmd.PersistentFlags().Lookup("microbenchmark-function")))
 	cli.Must(viper.BindPFlag("application.env", cmd.PersistentFlags().Lookup("application-env")))
+	cli.Must(viper.BindPFlag("microbenchmark.instanceType", cmd.PersistentFlags().Lookup("microbenchmark-instance-type")))
+	cli.Must(viper.BindPFlag("application.instanceType", cmd.PersistentFlags().Lookup("application-instance-type")))
+	cli.Must(viper.BindPFlag("application.benchmark.instanceType", cmd.PersistentFlags().Lookup("application-benchmark-instance-type")))
 }

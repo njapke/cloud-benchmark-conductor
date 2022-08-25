@@ -2,7 +2,7 @@
 project: mt-benchmarks
 region: europe-west1
 zone: europe-west1-b
-instanceType: n2-highcpu-4
+defaultInstanceType: n2-highcpu-4
 sshPrivateKey: |
   -----BEGIN OPENSSH PRIVATE KEY-----
   b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
@@ -20,7 +20,8 @@ microbenchmark:
 #  runs: 1
 #  suiteRuns: 1
   v1: main
-  v2: perf-issue-clean-path
+  v2: main
+#  v2: perf-issue-clean-path
 #  v2: perf-issue-request-id
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
@@ -34,12 +35,14 @@ application:
   name: fbs
   repository: https://github.com/christophwitzko/flight-booking-service.git
   v1: main
+  v2: main
 #  v2: perf-issue-clean-path
-  v2: perf-issue-request-id
+#  v2: perf-issue-request-id
   package: ./cmd/flight-booking-service
   env:
     - LOG_LEVEL=info
   benchmark:
+    instanceType: n2-highcpu-8
     config: ./artillery/config.yaml
     reference: main
     output: gs://cbc-results/{{.Name}}/ab-{{.V1}}-{{.V2}}-{{.Timestamp}}
