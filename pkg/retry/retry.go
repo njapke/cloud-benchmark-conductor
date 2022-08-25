@@ -20,7 +20,7 @@ func OnError(ctx context.Context, log *logger.Logger, prefix string, fn func() e
 			return nil
 		}
 		lastErr = err
-		log.Warnf("%s error at attempt %d: %v, retrying...", prefix, i, err)
+		log.Warnf("%s error at attempt %d: %v", prefix, i, err)
 		time.Sleep(time.Second)
 	}
 	return lastErr
