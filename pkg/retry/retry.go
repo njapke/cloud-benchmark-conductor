@@ -15,13 +15,15 @@ func OnError(ctx context.Context, log *logger.Logger, prefix string, fn func() e
 			return ctx.Err()
 		default:
 		}
+		if i > 1 {
+			time.Sleep(500 * time.Millisecond)
+		}
 		err := fn()
 		if err == nil {
 			return nil
 		}
 		lastErr = err
 		log.Warnf("%s error at attempt %d: %v", prefix, i, err)
-		time.Sleep(time.Second)
 	}
 	return lastErr
 }
