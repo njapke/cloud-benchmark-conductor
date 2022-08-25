@@ -62,7 +62,7 @@ func ApplicationBenchmark(ctx context.Context, log *logger.Logger, service gclou
 	appConf := conf.Application
 	runnerName := fmt.Sprintf("%s-application-benchmark", appConf.Name)
 	log.Infof("[%s] creating or getting instance...", runnerName)
-	instance, err := service.GetOrCreateInstance(ctx, runnerName)
+	instance, err := service.GetOrCreateInstance(ctx, runnerName, appConf.Benchmark.InstanceType)
 	if err != nil {
 		return err
 	}

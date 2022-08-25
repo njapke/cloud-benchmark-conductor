@@ -32,7 +32,7 @@ func Application(ctx context.Context, log *logger.Logger, service gcloud.Service
 
 	runnerName := fmt.Sprintf("%s-application", appConf.Name)
 	log.Infof("[%s] creating or getting instance...", runnerName)
-	instance, err := service.GetOrCreateInstance(ctx, runnerName)
+	instance, err := service.GetOrCreateInstance(ctx, runnerName, appConf.InstanceType)
 	if err != nil {
 		return err
 	}

@@ -35,7 +35,7 @@ func trimPrefixName(n string) string {
 type Service interface {
 	Config() *config.ConductorConfig
 	GetInstance(ctx context.Context, name string) (Instance, error)
-	GetOrCreateInstance(ctx context.Context, name string) (Instance, error)
+	GetOrCreateInstance(ctx context.Context, name, instanceType string) (Instance, error)
 	EnsureFirewallRules(ctx context.Context) error
 	ListInstances(ctx context.Context) ([]string, error)
 	DeleteInstance(ctx context.Context, instanceName string) error
@@ -158,7 +158,7 @@ func (s *service) GetInstance(ctx context.Context, name string) (Instance, error
 }
 
 // GetOrCreateInstance tries to get an instance with the given name. If it does not exist, it will be created.
-func (s *service) GetOrCreateInstance(ctx context.Context, name string) (Instance, error) {
+func (s *service) GetOrCreateInstance(ctx context.Context, name, instanceType string) (Instance, error) {
 	latestUbuntu, err := s.getLatestUbuntuImage(ctx)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,10 @@ func (s *service) GetOrCreateInstance(ctx context.Context, name string) (Instanc
 	}
 
 	prefixedInstanceName := prefixName(name)
-	machineType := fmt.Sprintf("zones/%s/machineTypes/%s", s.config.Zone, s.config.InstanceType)
+	if instanceType == "" {
+		instanceType = s.config.DefaultInstanceType
+	}
+	machineType := fmt.Sprintf("zones/%s/machineTypes/%s", s.config.Zone, instanceType)
 	diskType := fmt.Sprintf("zones/%s/diskTypes/pd-balanced", s.config.Zone)
 	insertInstance := &computepb.InsertInstanceRequest{
 		Project: s.config.Project,

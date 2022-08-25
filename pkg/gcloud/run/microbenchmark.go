@@ -76,7 +76,7 @@ func Microbenchmark(ctx context.Context, log *logger.Logger, service gcloud.Serv
 	mbConf := conf.Microbenchmark
 	runnerName := fmt.Sprintf("%s-runner-%d", mbConf.Name, runIndex)
 	log.Infof("[%s] creating or getting instance...", runnerName)
-	instance, err := service.GetOrCreateInstance(ctx, runnerName)
+	instance, err := service.GetOrCreateInstance(ctx, runnerName, mbConf.InstanceType)
 	if err != nil {
 		return err
 	}
