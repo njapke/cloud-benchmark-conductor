@@ -27,7 +27,7 @@ func ReadArtilleryResult(outputFileName string) (ArtilleryResult, error) {
 	return artilleryResult, err
 }
 
-var csvHeader = []string{"version", "index", "period", "width", "scenario", "method", "path", "median", "count"}
+var csvHeader = []string{"version", "index", "period", "width", "scenario", "method", "path", "request_time_median", "request_count"}
 
 func ReadArtilleryResultToCSV(outputFileNames map[string]string) (io.Reader, error) {
 	buf := &bytes.Buffer{}
