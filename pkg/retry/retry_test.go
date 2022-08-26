@@ -36,3 +36,15 @@ func TestOnErrorFailOnce(t *testing.T) {
 	require.Contains(t, hook.LastEntry().Message, "always error")
 	require.Len(t, hook.Entries, 1)
 }
+
+func TestOnErrorWithHandler(t *testing.T) {
+	attempts := 0
+	err := OnErrorWithHandler(context.Background(), func(attempt int, err error) {
+		attempts++
+		require.Error(t, err)
+	}, func() error {
+		return fmt.Errorf("always error")
+	})
+	require.Error(t, err)
+	require.Equal(t, 3, attempts)
+}

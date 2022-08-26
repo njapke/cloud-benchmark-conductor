@@ -11,6 +11,7 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/merror"
 	"github.com/christophwitzko/master-thesis/pkg/netutil"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 	"golang.org/x/crypto/ssh"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
@@ -88,20 +89,28 @@ func (i *instance) newSSHClient(ctx context.Context) (*sshClient, error) {
 		return nil, err
 	}
 	sshEndpoint := i.SSHEndpoint()
-	var dialer net.Dialer
-	tcpConn, err := dialer.DialContext(ctx, "tcp4", sshEndpoint)
+	var client *sshClient
+	err := retry.OnErrorWithHandler(ctx, retry.HandleSilently, func() error {
+		var dialer net.Dialer
+		tcpConn, err := dialer.DialContext(ctx, "tcp4", sshEndpoint)
+		if err != nil {
+			return err
+		}
+		sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, sshEndpoint, &ssh.ClientConfig{
+			User:            "ubuntu",
+			Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.config.SSHSigner)},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		})
+		if err != nil {
+			return merror.MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
+		}
+		client = &sshClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, sshEndpoint, &ssh.ClientConfig{
-		User:            "ubuntu",
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(i.config.SSHSigner)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	})
-	if err != nil {
-		return nil, merror.MaybeMultiError(fmt.Errorf("failed to create ssh client: %w", err), tcpConn.Close())
-	}
-	return &sshClient{sshClient: ssh.NewClient(sshConn, chans, reqs)}, nil
+	return client, nil
 }
 
 func (i *instance) ensureSSHClient(ctx context.Context) error {
