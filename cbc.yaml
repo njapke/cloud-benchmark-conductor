@@ -43,6 +43,8 @@ application:
     - LOG_LEVEL=info
   benchmark:
     instanceType: n2-highcpu-8
-    config: ./artillery/config.yaml
+    config: ./artillery/config_80.yaml # main reaches 90%-95%
+#    config: ./artillery/config_70.yaml # perf-issue-clean-path reaches 85%-90%
+#    config: ./artillery/config_42.yaml # perf-issue-request-id reaches 85%-90%
     reference: main
     output: gs://cbc-results/{{.Name}}/ab-{{.V1}}-{{.V2}}-{{.Timestamp}}
