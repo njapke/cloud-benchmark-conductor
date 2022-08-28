@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
+	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
 	"github.com/christophwitzko/master-thesis/pkg/microbenchmark/output"
 	"github.com/christophwitzko/master-thesis/pkg/profile"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 )
@@ -48,8 +50,9 @@ func main() {
 	rootCmd.MarkFlagsMutuallyExclusive("function", "include-filter")
 	rootCmd.MarkFlagsMutuallyExclusive("function", "exclude-filter")
 
-	rootCmd.Flags().Bool("profile", false, "profile each function")
-	rootCmd.Flags().String("profile-output", "./profiles", "output directory for profiling")
+	rootCmd.Flags().Bool("profiling", false, "create a profile for each function")
+	rootCmd.Flags().String("profiling-local-output", "./profiles", "output directory for profiling")
+	rootCmd.Flags().String("profiling-gcs-output", "", "if set uploads the profiles to google cloud storage")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -109,20 +112,49 @@ func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFuncti
 	return nil
 }
 
-func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, profileOutput string) error {
+func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, profilingLocalOutput, profilingGCSOutput string) error {
 	log.Warn("profiling only functions from version 1")
-	err := setup.CreateDirectory(profileOutput)
+	err := setup.CreateDirectory(profilingLocalOutput)
 	if err != nil {
-		return fmt.Errorf("failed to create profile output directory: %w", err)
+		return fmt.Errorf("failed to create local profile output directory: %w", err)
 	}
+	var profilingGCSOutputHost, profilingGCSOutputPath string
+	if profilingGCSOutput != "" {
+		profilingGCSOutputHost, profilingGCSOutputPath, err = storage.ParseURL(profilingGCSOutput)
+		if err != nil {
+			return fmt.Errorf("failed to parse gcs output url: %w", err)
+		}
+	}
+	logPrefix := "|pprof|"
 	for _, vf := range versionedFunctions {
-		profileFile, err := microbenchmark.RunProfile(ctx, log, vf.V1, profileOutput)
+		profileFile, err := microbenchmark.RunProfile(ctx, log, vf.V1, profilingLocalOutput)
+		profileFileName := filepath.Base(profileFile)
+		if profilingGCSOutput != "" {
+			log.Infof("%s uploading pprof profile to gcs: %s", logPrefix, profileFileName)
+			err = retry.OnError(ctx, log, logPrefix, func() error {
+				return storage.UploadFileToBucket(ctx, profilingGCSOutputHost, filepath.Join(profilingGCSOutputPath, profileFileName), profileFile)
+			})
+			if err != nil {
+				return err
+			}
+		}
 		if err != nil {
 			return err
 		}
-		err = profile.ToCallGraph(log, "|pprof|", profileFile, profileFile+".dot")
+		callGraphFile := profileFile + ".dot"
+		callGraphFileName := filepath.Base(callGraphFile)
+		err = profile.ToCallGraph(log, logPrefix, profileFile, callGraphFile)
 		if err != nil {
 			return err
+		}
+		if profilingGCSOutput != "" {
+			log.Infof("%s uploading call graph to gcs: %s", logPrefix, callGraphFileName)
+			err = retry.OnError(ctx, log, logPrefix, func() error {
+				return storage.UploadFileToBucket(ctx, profilingGCSOutputHost, filepath.Join(profilingGCSOutputPath, callGraphFileName), callGraphFile)
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	log.Info("done.")
@@ -142,8 +174,9 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	outputFormatJSON := cli.MustGetBool(cmd, "json")
 	outputFormatCSV := cli.MustGetBool(cmd, "csv")
 	functions := cli.MustGetStringArray(cmd, "function")
-	runProfile := cli.MustGetBool(cmd, "profile")
-	profileOutput := cli.MustGetString(cmd, "profile-output")
+	shouldRunProfiling := cli.MustGetBool(cmd, "profiling")
+	profilingLocalOutput := cli.MustGetString(cmd, "profiling-local-output")
+	profilingGCSOutput := cli.MustGetString(cmd, "profiling-gcs-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
 
 	if !outputFormatCSV && !outputFormatJSON {
@@ -179,8 +212,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, cancel := cli.NewContext(timeout)
 	defer cancel()
 
-	if runProfile {
-		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profileOutput))
+	if shouldRunProfiling {
+		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profilingLocalOutput), profilingGCSOutput)
 	}
 
 	return runMicrobenchmarks(ctx, log, versionedFunctions, outputPaths, defaultOutputFormat, suiteRuns, runIndex)
