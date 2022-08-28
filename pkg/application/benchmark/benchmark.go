@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -16,9 +15,9 @@ import (
 )
 
 type Config struct {
-	ConfigFile string
-	OutputPath string
-	outputURL  *url.URL
+	ConfigFile                   string
+	OutputPath                   string
+	outputURLHost, outputURLPath string
 }
 
 func (c *Config) Validate() error {
@@ -28,27 +27,21 @@ func (c *Config) Validate() error {
 	if c.OutputPath == "" {
 		return nil
 	}
-	u, err := url.Parse(c.OutputPath)
-	if err != nil {
-		return fmt.Errorf("invalid output path: %w", err)
-	}
-	if u.Scheme != "gs" && u.Scheme != "gcs" {
-		return fmt.Errorf("invalid output path scheme: %s", u.Scheme)
-	}
-	c.outputURL = u
-	return nil
+	var err error
+	c.outputURLHost, c.outputURLPath, err = storage.ParseURL(c.OutputPath)
+	return err
 }
 
 func (c *Config) GetOutputObjectName(fileName string) string {
-	return fmt.Sprintf("gs://%s%s", c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName))
+	return fmt.Sprintf("gs://%s%s", c.outputURLHost, filepath.Join(c.outputURLPath, fileName))
 }
 
 func (c *Config) UploadToBucketFromReader(ctx context.Context, fileName string, inputFile io.Reader) error {
-	return storage.UploadToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), inputFile)
+	return storage.UploadToBucket(ctx, c.outputURLHost, filepath.Join(c.outputURLPath, fileName), inputFile)
 }
 
 func (c *Config) UploadToBucketFromFile(ctx context.Context, fileName, inputFile string) error {
-	return storage.UploadFileToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), inputFile)
+	return storage.UploadFileToBucket(ctx, c.outputURLHost, filepath.Join(c.outputURLPath, fileName), inputFile)
 }
 
 type TargetInfo struct {
@@ -83,7 +76,7 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 	}
 
 	log.Infof("[%s] artillery run finished", targetInfo.Name)
-	if config.outputURL == nil {
+	if config.outputURLHost == "" {
 		log.Warnf("[%s] no results output configured, skipping upload", targetInfo.Name)
 		return nil
 	}

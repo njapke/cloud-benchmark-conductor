@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -53,4 +54,15 @@ func UploadFileToBucket(ctx context.Context, bucketName, objectName, inputFile s
 	}
 	defer file.Close()
 	return UploadToBucket(ctx, bucketName, objectName, file)
+}
+
+func ParseURL(inputURL string) (string, string, error) {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid url: %w", err)
+	}
+	if u.Scheme != "gs" && u.Scheme != "gcs" {
+		return "", "", fmt.Errorf("invalid scheme: %s", u.Scheme)
+	}
+	return u.Host, u.Path, nil
 }
