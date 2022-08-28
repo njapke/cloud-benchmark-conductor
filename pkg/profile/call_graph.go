@@ -2,13 +2,19 @@ package profile
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/google/pprof/driver"
 )
 
-func ToCallGraph(log *logger.Logger, inputFile, outputFile string) error {
-	log.Infof("|pprof| generating callgraph from profile %s", inputFile)
+// global mutex to synchronize pprof calls
+var pprofMutex = sync.Mutex{}
+
+func ToCallGraph(log *logger.Logger, logPrefix, inputFile, outputFile string) error {
+	pprofMutex.Lock()
+	defer pprofMutex.Unlock()
+	log.Infof("%s generating callgraph from profile %s", logPrefix, inputFile)
 	fs := &mockFlagSet{
 		flags: make(map[string]*flagSetFlag),
 		parseHook: func(m *mockFlagSet) []string {
@@ -21,7 +27,7 @@ func ToCallGraph(log *logger.Logger, inputFile, outputFile string) error {
 		},
 	}
 	err := driver.PProf(&driver.Options{
-		UI:      &logUI{log: log},
+		UI:      &logUI{prefix: logPrefix, log: log},
 		Flagset: fs,
 	})
 	if err != nil {
@@ -31,13 +37,14 @@ func ToCallGraph(log *logger.Logger, inputFile, outputFile string) error {
 }
 
 type logUI struct {
-	log *logger.Logger
+	prefix string
+	log    *logger.Logger
 }
 
 func (ui *logUI) ReadLine(prompt string) (string, error) { return "", fmt.Errorf("not implemented") }
 
 func (ui *logUI) Print(args ...interface{}) {
-	ui.log.Info(append([]interface{}{"|pprof| "}, args...)...)
+	ui.log.Info(append([]interface{}{ui.prefix + " "}, args...)...)
 }
 
 func (ui *logUI) PrintErr(args ...interface{}) {

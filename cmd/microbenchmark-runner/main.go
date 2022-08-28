@@ -120,7 +120,7 @@ func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions mi
 		if err != nil {
 			return err
 		}
-		err = profile.ToCallGraph(log, profileFile, profileFile+".dot")
+		err = profile.ToCallGraph(log, "|pprof|", profileFile, profileFile+".dot")
 		if err != nil {
 			return err
 		}

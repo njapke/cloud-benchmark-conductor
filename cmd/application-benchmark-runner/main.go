@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/profile"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 
 	"github.com/christophwitzko/master-thesis/pkg/application/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/netutil"
+	"github.com/christophwitzko/master-thesis/pkg/profile"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -42,7 +43,7 @@ func main() {
 	rootCmd.Flags().Bool("profile", false, "enable continuous profiling")
 	rootCmd.Flags().String("profile-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
 	rootCmd.Flags().Duration("profile-interval", 5*time.Minute, "profile interval")
-	rootCmd.Flags().Duration("profile-duration", 30*time.Second, "profile duration")
+	rootCmd.Flags().Duration("profile-duration", 15*time.Second, "profile duration")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -82,10 +83,36 @@ func (c profileConfig) EndpointFromTarget(target string) string {
 }
 
 func (c profileConfig) ProfileFileName(targetName string, index int) string {
-	return filepath.Join(c.OutputDir, fmt.Sprintf("%s-%d.out", targetName, index))
+	return filepath.Join(c.OutputDir, fmt.Sprintf("pprof-%s-%d.out", targetName, index))
 }
 
-func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf profileConfig, targetInfo *benchmark.TargetInfo) error {
+func runProfiler(ctx context.Context, log *logger.Logger, logPrefix string, benchConf *benchmark.Config, profileEndpoint, profileFile string) error {
+	err := profile.Fetch(ctx, profileEndpoint, profileFile)
+	if err != nil {
+		return err
+	}
+	profileFileName := filepath.Base(profileFile)
+	log.Infof("%s profiling finished. uploading: %s", logPrefix, profileFileName)
+	err = retry.OnError(ctx, log, logPrefix, func() error {
+		return benchConf.UploadToBucketFromFile(ctx, profileFileName, profileFile)
+	})
+	if err != nil {
+		return err
+	}
+	log.Infof("%s converting to call graph...", logPrefix)
+	callGraphFile := profileFile + ".dot"
+	callGraphFileName := filepath.Base(callGraphFile)
+	err = profile.ToCallGraph(log, logPrefix, profileFile, callGraphFile)
+	if err != nil {
+		return err
+	}
+	log.Infof("%s uploading: %s", logPrefix, callGraphFileName)
+	return retry.OnError(ctx, log, logPrefix, func() error {
+		return benchConf.UploadToBucketFromFile(ctx, callGraphFileName, callGraphFile)
+	})
+}
+
+func runContinuousProfiler(ctx context.Context, log *logger.Logger, benchConf *benchmark.Config, profileConf profileConfig, targetInfo *benchmark.TargetInfo) error {
 	profileEndpoint := profileConf.EndpointFromTarget(targetInfo.Endpoint)
 	logPrefix := fmt.Sprintf("[pprof/%s]", targetInfo.Name)
 	log.Infof("%s starting continuous profiling on %s", logPrefix, profileEndpoint)
@@ -99,9 +126,10 @@ func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf 
 			return ctx.Err()
 		case <-ticker.C:
 			profileFile := profileConf.ProfileFileName(targetInfo.Name, i)
+			profileFileName := filepath.Base(profileFile)
 			i++
-			log.Infof("%s profiling to %s", logPrefix, profileFile)
-			err := profile.Fetch(ctx, profileEndpoint, profileFile)
+			log.Infof("%s profiling to %s", logPrefix, profileFileName)
+			err := runProfiler(ctx, log, logPrefix, benchConf, profileEndpoint, profileFile)
 			if err != nil {
 				log.Warningf("%s error while profiling: %v", logPrefix, err)
 				continue
@@ -130,7 +158,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	inputTargets := cli.MustGetStringArray(cmd, "target")
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
-	profile := cli.MustGetBool(cmd, "profile")
+	shouldProfile := cli.MustGetBool(cmd, "profile")
 	profileConf := profileConfig{
 		Endpoint: cli.MustGetString(cmd, "profile-endpoint"),
 		Interval: cli.MustGetDuration(cmd, "profile-interval"),
@@ -188,9 +216,9 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		errGroup.Go(func() error {
 			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, targetInfo)
 		})
-		if profile {
+		if shouldProfile {
 			profileGroup.Go(func() error {
-				return runContinuousProfiler(profileCtx, log, profileConf, targetInfo)
+				return runContinuousProfiler(profileCtx, log, appBenchConfig, profileConf, targetInfo)
 			})
 		}
 	}
@@ -199,7 +227,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if profile {
+	if shouldProfile {
 		log.Infof("waiting for continuous profiling to finish...")
 		err = profileGroup.Wait()
 		if err != nil && !errors.Is(err, context.Canceled) {

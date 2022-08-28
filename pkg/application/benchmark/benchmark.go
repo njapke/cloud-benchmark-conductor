@@ -11,10 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/christophwitzko/master-thesis/pkg/retry"
-
 	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 )
 
 type Config struct {
@@ -73,8 +72,6 @@ func (t *TargetInfo) OutputFileName() string {
 }
 
 func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targetInfo *TargetInfo) error {
-	configDir := filepath.Dir(config.ConfigFile)
-
 	args := []string{
 		"run",
 		fmt.Sprintf("--target=http://%s", targetInfo.Endpoint),
@@ -83,7 +80,7 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 	}
 	log.Infof("[%s] running: artillery %s", targetInfo.Name, strings.Join(args, " "))
 	cmd := exec.CommandContext(ctx, "artillery", args...)
-	cmd.Dir = configDir
+	cmd.Dir = filepath.Dir(config.ConfigFile)
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
