@@ -29,19 +29,19 @@ func ReadArtilleryResult(outputFileName string) (ArtilleryResult, error) {
 
 var csvHeader = []string{"version", "index", "period", "width", "scenario", "method", "path", "request_time_median", "request_count"}
 
-func ReadArtilleryResultToCSV(outputFileNames map[string]string) (io.Reader, error) {
+func ReadArtilleryResultToCSV(targets []*TargetInfo) (io.Reader, error) {
 	buf := &bytes.Buffer{}
 	csvWriter := csv.NewWriter(buf)
 	err := csvWriter.Write(csvHeader)
 	if err != nil {
 		return nil, err
 	}
-	for outputFileVersion, outputFileName := range outputFileNames {
-		artilleryResult, readErr := ReadArtilleryResult(outputFileName)
+	for _, targetInfo := range targets {
+		artilleryResult, readErr := ReadArtilleryResult(targetInfo.OutputFile)
 		if readErr != nil {
 			return nil, readErr
 		}
-		_ = csvWriter.WriteAll(artilleryResult.IntermediateRecords(outputFileVersion))
+		_ = csvWriter.WriteAll(artilleryResult.IntermediateRecords(targetInfo.Name))
 	}
 	csvWriter.Flush()
 	err = csvWriter.Error()
