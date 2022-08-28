@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sync"
-	"syscall"
 
 	"github.com/christophwitzko/master-thesis/pkg/application"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
@@ -58,8 +56,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	ctx, cancel := cli.NewContext(cli.DefaultTimeout)
+	defer cancel()
 
 	execFileV1 := filepath.Join(sourcePathV1, "v1")
 	execFileV2 := filepath.Join(sourcePathV2, "v2")

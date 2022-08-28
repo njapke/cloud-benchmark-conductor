@@ -1,10 +1,6 @@
 package main
 
 import (
-	"context"
-	"os/signal"
-	"syscall"
-
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
@@ -35,10 +31,8 @@ func microbenchmarkRun(log *logger.Logger, cmd *cobra.Command, args []string) er
 	}
 	defer service.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
+	ctx, cancel := cli.NewContext(conf.Timeout)
 	defer cancel()
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	log.Info("setting up firewall rules...")
 	if err := service.EnsureFirewallRules(ctx); err != nil {

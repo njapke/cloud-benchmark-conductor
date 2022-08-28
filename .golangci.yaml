@@ -16,7 +16,7 @@ linters:
 
 linters-settings:
   gocyclo:
-    min-complexity: 12
+    min-complexity: 15
   gofumpt:
     extra-rules: true
   govet:

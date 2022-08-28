@@ -1,10 +1,6 @@
 package main
 
 import (
-	"context"
-	"os/signal"
-	"syscall"
-
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
 	"github.com/christophwitzko/master-thesis/pkg/gcloud"
@@ -39,8 +35,8 @@ func cleanupRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	log.Info("cleanup started...")
 	cleanupAll := cli.MustGetBool(cmd, "all")
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	ctx, cancel := cli.NewContext(cli.DefaultTimeout)
+	defer cancel()
 
 	instanceNames, err := service.ListInstances(ctx)
 	if err != nil {

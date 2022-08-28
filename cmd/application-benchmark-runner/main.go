@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/application/benchmark"
@@ -97,6 +95,18 @@ func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf 
 	}
 }
 
+func waitForTargets(ctx context.Context, log *logger.Logger, targets []*benchmark.TargetInfo) error {
+	errGroup, groupCtx := errgroup.WithContext(ctx)
+	for _, targetInfo := range targets {
+		targetInfo := targetInfo
+		errGroup.Go(func() error {
+			log.Infof("waiting for target %s (%s)", targetInfo.Name, targetInfo.Endpoint)
+			return netutil.WaitForPortOpen(groupCtx, targetInfo.Endpoint)
+		})
+	}
+	return errGroup.Wait()
+}
+
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	referenceOrPath := cli.MustGetString(cmd, "reference")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
@@ -126,10 +136,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	log.Infof("using application benchmark config file: %s", appBenchConfigFile)
 
 	log.Infof("timeout: %s", timeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := cli.NewContext(timeout)
 	defer cancel()
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	appBenchConfig := &benchmark.Config{
 		ConfigFile: appBenchConfigFile,
@@ -144,21 +152,13 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	targets := parseInputTargets(appBenchConfigDir, inputTargets)
 
 	log.Info("waiting for targets to be ready....")
-	errGroup, groupCtx := errgroup.WithContext(ctx)
-	for _, targetInfo := range targets {
-		targetInfo := targetInfo
-		errGroup.Go(func() error {
-			log.Infof("waiting for target %s (%s)", targetInfo.Name, targetInfo.Endpoint)
-			return netutil.WaitForPortOpen(groupCtx, targetInfo.Endpoint)
-		})
-	}
-	err = errGroup.Wait()
+	err = waitForTargets(ctx, log, targets)
 	if err != nil {
 		return err
 	}
 
 	log.Info("starting artillery...")
-	errGroup, groupCtx = errgroup.WithContext(ctx)
+	errGroup, groupCtx := errgroup.WithContext(ctx)
 	// the profile context is linked to the group error group
 	// with their own cancel function
 	profileCtx, cancelProfile := context.WithCancel(groupCtx)

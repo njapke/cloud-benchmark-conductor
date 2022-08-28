@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
-	"syscall"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
@@ -178,10 +176,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	log.Infof("timeout: %s", timeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := cli.NewContext(timeout)
 	defer cancel()
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	if runProfile {
 		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profileOutput))

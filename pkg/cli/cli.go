@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"syscall"
 	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/logger"
@@ -97,4 +100,15 @@ func GetAbsolutePath(p string) string {
 		return p
 	}
 	return absP
+}
+
+var DefaultTimeout = 2 * time.Hour
+
+func NewContext(timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	return ctx, func() {
+		stop()
+		cancel()
+	}
 }
