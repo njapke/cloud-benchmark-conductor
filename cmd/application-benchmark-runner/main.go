@@ -9,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/retry"
-
 	"github.com/christophwitzko/master-thesis/pkg/application/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/netutil"
 	"github.com/christophwitzko/master-thesis/pkg/profile"
+	"github.com/christophwitzko/master-thesis/pkg/retry"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -40,10 +39,10 @@ func main() {
 	rootCmd.Flags().StringArray("target", []string{"v1=127.0.0.1:3000"}, "target to run the application benchmark on")
 	rootCmd.Flags().String("results-output", "", "path where the results should be stored [e.g. gs://ab-results/app]")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
-	rootCmd.Flags().Bool("profile", false, "enable continuous profiling")
-	rootCmd.Flags().String("profile-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
-	rootCmd.Flags().Duration("profile-interval", 5*time.Minute, "profile interval")
-	rootCmd.Flags().Duration("profile-duration", 15*time.Second, "profile duration")
+	rootCmd.Flags().Bool("profiling", false, "enable continuous profiling")
+	rootCmd.Flags().String("profiling-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
+	rootCmd.Flags().Duration("profiling-interval", 5*time.Minute, "profiling interval")
+	rootCmd.Flags().Duration("profiling-duration", 15*time.Second, "profiling duration")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -71,18 +70,18 @@ func parseInputTargets(configDir string, inputTargets []string) []*benchmark.Tar
 	return targets
 }
 
-type profileConfig struct {
+type profilingConfig struct {
 	Endpoint  string
 	Interval  time.Duration
 	Duration  time.Duration
 	OutputDir string
 }
 
-func (c profileConfig) EndpointFromTarget(target string) string {
+func (c profilingConfig) EndpointFromTarget(target string) string {
 	return fmt.Sprintf("http://%s%s?seconds=%.0f", target, c.Endpoint, c.Duration.Seconds())
 }
 
-func (c profileConfig) ProfileFileName(targetName string, index int) string {
+func (c profilingConfig) ProfileFileName(targetName string, index int) string {
 	return filepath.Join(c.OutputDir, fmt.Sprintf("pprof-%s-%d.out", targetName, index))
 }
 
@@ -112,11 +111,11 @@ func runProfiler(ctx context.Context, log *logger.Logger, logPrefix string, benc
 	})
 }
 
-func runContinuousProfiler(ctx context.Context, log *logger.Logger, benchConf *benchmark.Config, profileConf profileConfig, targetInfo *benchmark.TargetInfo) error {
-	profileEndpoint := profileConf.EndpointFromTarget(targetInfo.Endpoint)
+func runContinuousProfiler(ctx context.Context, log *logger.Logger, benchConf *benchmark.Config, profilingConf profilingConfig, targetInfo *benchmark.TargetInfo) error {
+	profileEndpoint := profilingConf.EndpointFromTarget(targetInfo.Endpoint)
 	logPrefix := fmt.Sprintf("[pprof/%s]", targetInfo.Name)
 	log.Infof("%s starting continuous profiling on %s", logPrefix, profileEndpoint)
-	ticker := time.NewTicker(profileConf.Interval)
+	ticker := time.NewTicker(profilingConf.Interval)
 	defer ticker.Stop()
 	i := 0
 	for {
@@ -125,7 +124,7 @@ func runContinuousProfiler(ctx context.Context, log *logger.Logger, benchConf *b
 			log.Infof("%s stopping...", logPrefix)
 			return ctx.Err()
 		case <-ticker.C:
-			profileFile := profileConf.ProfileFileName(targetInfo.Name, i)
+			profileFile := profilingConf.ProfileFileName(targetInfo.Name, i)
 			profileFileName := filepath.Base(profileFile)
 			i++
 			log.Infof("%s profiling to %s", logPrefix, profileFileName)
@@ -159,10 +158,10 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
 	shouldProfile := cli.MustGetBool(cmd, "profile")
-	profileConf := profileConfig{
-		Endpoint: cli.MustGetString(cmd, "profile-endpoint"),
-		Interval: cli.MustGetDuration(cmd, "profile-interval"),
-		Duration: cli.MustGetDuration(cmd, "profile-duration"),
+	profilingConf := profilingConfig{
+		Endpoint: cli.MustGetString(cmd, "profiling-endpoint"),
+		Interval: cli.MustGetDuration(cmd, "profiling-interval"),
+		Duration: cli.MustGetDuration(cmd, "profiling-duration"),
 	}
 
 	if referenceOrPath == "" {
@@ -192,8 +191,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
-	profileConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
-	err = setup.CreateDirectory(profileConf.OutputDir)
+	profilingConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
+	err = setup.CreateDirectory(profilingConf.OutputDir)
 	if err != nil {
 		return err
 	}
@@ -218,7 +217,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		})
 		if shouldProfile {
 			profileGroup.Go(func() error {
-				return runContinuousProfiler(profileCtx, log, appBenchConfig, profileConf, targetInfo)
+				return runContinuousProfiler(profileCtx, log, appBenchConfig, profilingConf, targetInfo)
 			})
 		}
 	}
