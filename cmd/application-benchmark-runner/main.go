@@ -213,7 +213,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 	log.Infof("uploading combined results...")
-	err = appBenchConfig.UploadToBucket(ctx, "combined-results.csv", resultCSV)
+	err = appBenchConfig.UploadToBucketFromReader(ctx, "combined-results.csv", resultCSV)
 	if err != nil {
 		return err
 	}

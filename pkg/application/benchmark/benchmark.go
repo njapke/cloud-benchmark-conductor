@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/christophwitzko/master-thesis/pkg/retry"
+
 	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 )
@@ -43,8 +45,21 @@ func (c *Config) GetOutputObjectName(fileName string) string {
 	return fmt.Sprintf("gs://%s%s", c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName))
 }
 
-func (c *Config) UploadToBucket(ctx context.Context, fileName string, inputFile io.Reader) error {
+func (c *Config) UploadToBucketFromReader(ctx context.Context, fileName string, inputFile io.Reader) error {
 	return storage.UploadToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), inputFile)
+}
+
+func (c *Config) UploadToBucketFromFile(ctx context.Context, fileName, inputFile string) error {
+	file, err := os.Open(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+	err = storage.UploadToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), file)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type TargetInfo struct {
@@ -73,7 +88,8 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
 	defer logPipeWrite.Close()
-	go log.PrefixedReader(fmt.Sprintf("[%s]", targetInfo.Name), logPipeRead)
+	logPrefix := fmt.Sprintf("[%s]", targetInfo.Name)
+	go log.PrefixedReader(logPrefix, logPipeRead)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("artillery run failed: %w", err)
@@ -85,13 +101,10 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 		return nil
 	}
 	log.Infof("[%s] uploading results...", targetInfo.Name)
-	outputFile, err := os.Open(targetInfo.OutputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open output file: %w", err)
-	}
-	defer outputFile.Close()
 	outputFileName := targetInfo.OutputFileName()
-	err = config.UploadToBucket(ctx, outputFileName, outputFile)
+	err = retry.OnError(ctx, log, logPrefix, func() error {
+		return config.UploadToBucketFromFile(ctx, outputFileName, targetInfo.OutputFile)
+	})
 	if err != nil {
 		return err
 	}
