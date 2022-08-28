@@ -17,6 +17,7 @@ func cleanupCmd(log *logger.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cleanup",
 		Short: "Delete cloud resources created by the cloud benchmark conductor",
+		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, cleanupRun),
 	}
 	cmd.Flags().Bool("all", false, "delete all resources created by the cloud benchmark conductor")

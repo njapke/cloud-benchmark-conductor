@@ -14,6 +14,7 @@ func configCmd(log *logger.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",
 		Short: "Print the current benchmark config",
+		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, configRun),
 	}
 }

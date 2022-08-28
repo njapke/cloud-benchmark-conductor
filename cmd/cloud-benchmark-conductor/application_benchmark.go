@@ -20,6 +20,7 @@ func applicationBenchmarkCmd(log *logger.Logger) *cobra.Command {
 		Use:     "application-benchmark",
 		Aliases: []string{"ab", "app"},
 		Short:   "Run application benchmarks in the cloud",
+		Args:    cobra.NoArgs,
 		Run:     cli.WrapRunE(log, applicationBenchmarkRun),
 	}
 }

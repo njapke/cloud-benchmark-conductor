@@ -25,6 +25,7 @@ func main() {
 		Use:   "application-runner",
 		Short: "application runner tool",
 		Long:  "This tool builds and runs two versions of an application concurrently.",
+		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, rootRun),
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,

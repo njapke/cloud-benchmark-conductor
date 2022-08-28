@@ -25,6 +25,7 @@ func main() {
 		Use:   "microbenchmark-runner",
 		Short: "microbenchmark runner tool",
 		Long:  "This tool is used to run microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).",
+		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, rootRun),
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,

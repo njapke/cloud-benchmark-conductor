@@ -25,6 +25,7 @@ func main() {
 		Use:   "application-benchmark-runner",
 		Short: "application benchmark runner tool",
 		Long:  "This tool is used to run the application benchmarks using artillery.",
+		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, rootRun),
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,

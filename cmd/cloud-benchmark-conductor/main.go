@@ -17,6 +17,7 @@ func main() {
 		Short: "cloud benchmark conductor",
 		Long: `The cloud benchmark conductor takes care of running benchmarks in the cloud.
 Therefore compute instances are provisioned and used to execute the benchmarks.`,
+		Args: cobra.NoArgs,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
 		},

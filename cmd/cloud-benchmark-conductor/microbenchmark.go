@@ -19,6 +19,7 @@ func microbenchmarkCmd(log *logger.Logger) *cobra.Command {
 		Use:     "microbenchmark",
 		Aliases: []string{"mb", "micro"},
 		Short:   "Run microbenchmarks in the cloud",
+		Args:    cobra.NoArgs,
 		Run:     cli.WrapRunE(log, microbenchmarkRun),
 	}
 }
