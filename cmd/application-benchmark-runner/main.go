@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -38,9 +39,61 @@ func main() {
 	rootCmd.Flags().StringArray("target", []string{"v1=127.0.0.1:3000"}, "target to run the application benchmark on")
 	rootCmd.Flags().String("results-output", "", "path where the results should be stored [e.g. gs://ab-results/app]")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
+	rootCmd.Flags().Bool("profile", false, "enable continuous profiling")
+	rootCmd.Flags().String("profile-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
+	rootCmd.Flags().Duration("profile-interval", 5*time.Minute, "profile interval")
+	rootCmd.Flags().Duration("profile-duration", 30*time.Second, "profile duration")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
+	}
+}
+
+func parseInputTargets(configDir string, inputTargets []string) []*benchmark.TargetInfo {
+	targets := make([]*benchmark.TargetInfo, 0, len(inputTargets))
+	for _, target := range inputTargets {
+		targetName := target
+		targetEndpoint := target
+		if strings.Contains(target, "=") {
+			targetName, targetEndpoint, _ = strings.Cut(target, "=")
+		}
+		newTarget := &benchmark.TargetInfo{
+			Name:     targetName,
+			Endpoint: targetEndpoint,
+			OutputFile: filepath.Join(
+				configDir,
+				fmt.Sprintf("%s.json", targetName),
+			),
+		}
+		targets = append(targets, newTarget)
+	}
+	return targets
+}
+
+type profileConfig struct {
+	Endpoint string
+	Interval time.Duration
+	Duration time.Duration
+}
+
+func (c profileConfig) EndpointFromTarget(target string) string {
+	return fmt.Sprintf("http://%s%s?seconds=%.0f", target, c.Endpoint, c.Duration.Seconds())
+}
+
+func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf profileConfig, targetInfo *benchmark.TargetInfo) error {
+	profileEndpoint := profileConf.EndpointFromTarget(targetInfo.Endpoint)
+	logPrefix := fmt.Sprintf("[pprof/%s]", targetInfo.Name)
+	log.Infof("%s starting continuous profiling on %s", logPrefix, profileEndpoint)
+	ticker := time.NewTicker(profileConf.Interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Infof("%s stopping...", logPrefix)
+			return ctx.Err()
+		case <-ticker.C:
+			log.Infof("%s profiling...", logPrefix)
+		}
 	}
 }
 
@@ -52,6 +105,12 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	inputTargets := cli.MustGetStringArray(cmd, "target")
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
+	profile := cli.MustGetBool(cmd, "profile")
+	profileConf := profileConfig{
+		Endpoint: cli.MustGetString(cmd, "profile-endpoint"),
+		Interval: cli.MustGetDuration(cmd, "profile-interval"),
+		Duration: cli.MustGetDuration(cmd, "profile-duration"),
+	}
 
 	if referenceOrPath == "" {
 		return fmt.Errorf("source path or git reference is required")
@@ -81,28 +140,16 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	targets := make(map[string]string)
-	outputPaths := make(map[string]string)
-	for _, target := range inputTargets {
-		targetName := target
-		targetEndpoint := target
-		if strings.Contains(target, "=") {
-			targetName, targetEndpoint, _ = strings.Cut(target, "=")
-		}
-		targets[targetName] = targetEndpoint
-		outputPaths[targetName] = filepath.Join(
-			filepath.Dir(appBenchConfig.ConfigFile),
-			fmt.Sprintf("%s.json", targetName),
-		)
-		log.Infof("target: %s (%s)", targetEndpoint, targetName)
-	}
+	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
+	targets := parseInputTargets(appBenchConfigDir, inputTargets)
 
 	log.Info("waiting for targets to be ready....")
 	errGroup, groupCtx := errgroup.WithContext(ctx)
-	for _, targetEndpoint := range targets {
-		targetEndpoint := targetEndpoint
+	for _, targetInfo := range targets {
+		targetInfo := targetInfo
 		errGroup.Go(func() error {
-			return netutil.WaitForPortOpen(groupCtx, targetEndpoint)
+			log.Infof("waiting for target %s (%s)", targetInfo.Name, targetInfo.Endpoint)
+			return netutil.WaitForPortOpen(groupCtx, targetInfo.Endpoint)
 		})
 	}
 	err = errGroup.Wait()
@@ -112,20 +159,36 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 
 	log.Info("starting artillery...")
 	errGroup, groupCtx = errgroup.WithContext(ctx)
-	for targetName, targetEndpoint := range targets {
-		targetName := targetName
-		targetEndpoint := targetEndpoint
+	// the profile context is linked to the group error group
+	// with their own cancel function
+	profileCtx, cancelProfile := context.WithCancel(groupCtx)
+	profileGroup, profileCtx := errgroup.WithContext(profileCtx)
+	for _, targetInfo := range targets {
+		targetInfo := targetInfo
 		errGroup.Go(func() error {
-			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, targetName, targetEndpoint)
+			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, targetInfo)
 		})
+		if profile {
+			profileGroup.Go(func() error {
+				return runContinuousProfiler(profileCtx, log, profileConf, targetInfo)
+			})
+		}
 	}
 	err = errGroup.Wait()
+	cancelProfile()
 	if err != nil {
 		return err
 	}
+	if profile {
+		log.Infof("waiting for continuous profiling to finish...")
+		err = profileGroup.Wait()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			return err
+		}
+	}
 
 	log.Infof("creating combined results csv...")
-	resultCSV, err := benchmark.ReadArtilleryResultToCSV(outputPaths)
+	resultCSV, err := benchmark.ReadArtilleryResultToCSV(targets)
 	if err != nil {
 		return err
 	}
