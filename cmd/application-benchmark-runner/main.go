@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/christophwitzko/master-thesis/pkg/profile"
+
 	"github.com/christophwitzko/master-thesis/pkg/application/benchmark"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
@@ -69,13 +71,18 @@ func parseInputTargets(configDir string, inputTargets []string) []*benchmark.Tar
 }
 
 type profileConfig struct {
-	Endpoint string
-	Interval time.Duration
-	Duration time.Duration
+	Endpoint  string
+	Interval  time.Duration
+	Duration  time.Duration
+	OutputDir string
 }
 
 func (c profileConfig) EndpointFromTarget(target string) string {
 	return fmt.Sprintf("http://%s%s?seconds=%.0f", target, c.Endpoint, c.Duration.Seconds())
+}
+
+func (c profileConfig) ProfileFileName(targetName string, index int) string {
+	return filepath.Join(c.OutputDir, fmt.Sprintf("%s-%d.out", targetName, index))
 }
 
 func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf profileConfig, targetInfo *benchmark.TargetInfo) error {
@@ -84,13 +91,21 @@ func runContinuousProfiler(ctx context.Context, log *logger.Logger, profileConf 
 	log.Infof("%s starting continuous profiling on %s", logPrefix, profileEndpoint)
 	ticker := time.NewTicker(profileConf.Interval)
 	defer ticker.Stop()
+	i := 0
 	for {
 		select {
 		case <-ctx.Done():
 			log.Infof("%s stopping...", logPrefix)
 			return ctx.Err()
 		case <-ticker.C:
-			log.Infof("%s profiling...", logPrefix)
+			profileFile := profileConf.ProfileFileName(targetInfo.Name, i)
+			i++
+			log.Infof("%s profiling to %s", logPrefix, profileFile)
+			err := profile.Fetch(ctx, profileEndpoint, profileFile)
+			if err != nil {
+				log.Warningf("%s error while profiling: %v", logPrefix, err)
+				continue
+			}
 		}
 	}
 }
@@ -149,6 +164,11 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
+	profileConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
+	err = setup.CreateDirectory(profileConf.OutputDir)
+	if err != nil {
+		return err
+	}
 	targets := parseInputTargets(appBenchConfigDir, inputTargets)
 
 	log.Info("waiting for targets to be ready....")
