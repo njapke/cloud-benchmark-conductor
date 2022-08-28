@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -49,16 +48,7 @@ func (c *Config) UploadToBucketFromReader(ctx context.Context, fileName string, 
 }
 
 func (c *Config) UploadToBucketFromFile(ctx context.Context, fileName, inputFile string) error {
-	file, err := os.Open(inputFile)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-	err = storage.UploadToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), file)
-	if err != nil {
-		return err
-	}
-	return nil
+	return storage.UploadFileToBucket(ctx, c.outputURL.Host, filepath.Join(c.outputURL.Path, fileName), inputFile)
 }
 
 type TargetInfo struct {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -43,4 +44,13 @@ func UploadToBucket(ctx context.Context, bucketName, objectName string, r io.Rea
 		return err
 	}
 	return objectWriter.Close()
+}
+
+func UploadFileToBucket(ctx context.Context, bucketName, objectName, inputFile string) error {
+	file, err := os.Open(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %w", inputFile, err)
+	}
+	defer file.Close()
+	return UploadToBucket(ctx, bucketName, objectName, file)
 }
