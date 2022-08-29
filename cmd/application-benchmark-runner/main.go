@@ -42,7 +42,7 @@ func main() {
 	rootCmd.Flags().Bool("profiling", false, "enable continuous profiling")
 	rootCmd.Flags().String("profiling-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
 	rootCmd.Flags().Duration("profiling-interval", 5*time.Minute, "profiling interval")
-	rootCmd.Flags().Duration("profiling-duration", 15*time.Second, "profiling duration")
+	rootCmd.Flags().Duration("profiling-duration", 30*time.Second, "profiling duration")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -157,7 +157,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	inputTargets := cli.MustGetStringArray(cmd, "target")
 	resultsOutputPath := cli.MustGetString(cmd, "results-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
-	shouldProfile := cli.MustGetBool(cmd, "profile")
+	shouldProfile := cli.MustGetBool(cmd, "profiling")
 	profilingConf := profilingConfig{
 		Endpoint: cli.MustGetString(cmd, "profiling-endpoint"),
 		Interval: cli.MustGetDuration(cmd, "profiling-interval"),
