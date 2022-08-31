@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/christophwitzko/master-thesis/pkg/application"
+	"github.com/christophwitzko/master-thesis/pkg/cgroups"
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/logger"
 	"github.com/christophwitzko/master-thesis/pkg/setup"
@@ -36,6 +37,7 @@ func main() {
 	rootCmd.Flags().String("application-package", "./", "package that should be build and run")
 	rootCmd.Flags().String("bind", "127.0.0.1", "bind address")
 	rootCmd.Flags().StringArray("env", []string{}, "environment variable to set")
+	rootCmd.Flags().Bool("limit-cpu", false, "grant each version an equal share of the CPU")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -50,6 +52,15 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	applicationPackage := cli.MustGetString(cmd, "application-package")
 	bindAddress := cli.MustGetString(cmd, "bind")
 	envVars := cli.MustGetStringArray(cmd, "env")
+	limitCPU := cli.MustGetBool(cmd, "limit-cpu")
+
+	if limitCPU {
+		log.Infof("setting up cgroups...")
+		err := cgroups.Setup()
+		if err != nil {
+			return err
+		}
+	}
 
 	sourcePathV1, sourcePathV2, err := setup.SourcePaths(log, applicationDirectory, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2)
 	if err != nil {
@@ -85,7 +96,15 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			runEnv := append([]string{
 				fmt.Sprintf("BIND_ADDRESS=%s:%d", bindAddress, startPort+i),
 			}, envVars...)
-			appErr := application.Run(ctx, log, execFile, runEnv)
+			vName := fmt.Sprintf("v%d", i+1)
+			var pidCb application.PidCallbackFunc
+			if limitCPU {
+				pidCb = func(pid int) error {
+					log.Infof("|%s| setting up cgroup pid %d", vName, pid)
+					return cgroups.AddProcess(vName, uint64(pid))
+				}
+			}
+			appErr := application.Run(ctx, log, execFile, runEnv, pidCb)
 			if appErr != nil {
 				log.Warnf("-> application %s exited with error: %v", execFile, appErr)
 				mErrMutex.Lock()

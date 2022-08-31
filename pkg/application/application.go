@@ -14,6 +14,8 @@ import (
 	"github.com/christophwitzko/master-thesis/pkg/merror"
 )
 
+type PidCallbackFunc func(pid int) error
+
 func Build(ctx context.Context, log *logger.Logger, buildPath, buildPackage, outputFile string) error {
 	if !strings.HasPrefix(buildPackage, "./") {
 		return fmt.Errorf("build package must be a relative path")
@@ -35,7 +37,7 @@ func Build(ctx context.Context, log *logger.Logger, buildPath, buildPackage, out
 	return cmd.Run()
 }
 
-func Run(ctx context.Context, log *logger.Logger, execFile string, env []string) error {
+func Run(ctx context.Context, log *logger.Logger, execFile string, env []string, pidCallback PidCallbackFunc) error {
 	cmd := exec.Command(execFile)
 	cmd.Dir = filepath.Dir(execFile)
 	cmd.Env = append(os.Environ(), env...)
@@ -52,10 +54,21 @@ func Run(ctx context.Context, log *logger.Logger, execFile string, env []string)
 	log.Infof("running %s with env=%v", execFile, env)
 	errCh := make(chan error, 1)
 	go func() {
-		if err := cmd.Run(); err != nil {
+		defer close(errCh)
+		if err := cmd.Start(); err != nil {
 			errCh <- err
+			return
 		}
-		close(errCh)
+		if pidCallback != nil {
+			if err := pidCallback(cmd.Process.Pid); err != nil {
+				errCh <- fmt.Errorf("failed to call pid callback: %w", err)
+				return
+			}
+		}
+		if err := cmd.Wait(); err != nil {
+			errCh <- err
+			return
+		}
 	}()
 
 	select {
