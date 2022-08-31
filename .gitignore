@@ -20,3 +20,4 @@ application-benchmark-runner
 
 *.csv
 test-key
+bin-linux-arm64
