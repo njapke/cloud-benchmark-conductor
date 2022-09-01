@@ -16,5 +16,5 @@ function sshkill() {
   ssh chris@192.168.64.4 'sudo kill -s SIGTERM $(pidof ./bin-linux-arm64)'
 }
 trap sshkill SIGINT
-ssh -t chris@192.168.64.4 "sudo ./bin-linux-arm64 $*" &
+ssh chris@192.168.64.4 "sudo ./bin-linux-arm64 $*" &
 while true; do sleep 1; done
