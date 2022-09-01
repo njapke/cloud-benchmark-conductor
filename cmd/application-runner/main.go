@@ -100,8 +100,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			var pidCb application.PidCallbackFunc
 			if limitCPU {
 				pidCb = func(pid int) error {
-					log.Infof("|%s| setting up cgroup pid %d", vName, pid)
-					return cgroups.AddProcess(vName, uint64(pid))
+					log.Infof("|%s| setting up cgroup for pid %d", vName, pid)
+					return cgroups.AddProcess(vName, pid)
 				}
 			}
 			appErr := application.Run(ctx, log, execFile, runEnv, pidCb)
