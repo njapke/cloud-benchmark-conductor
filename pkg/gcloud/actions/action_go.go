@@ -22,8 +22,6 @@ func (a *actionInstallGo) Name() string {
 	return "install-go"
 }
 
-const PATHWithGoBin = `PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/go/bin"`
-
 func getGoVersion(ctx context.Context, instance gcloud.Instance) (string, error) {
 	stdout, stderr, err := instance.Run(ctx, "go version || true")
 	if err != nil {
@@ -67,7 +65,7 @@ func (a *actionInstallGo) Run(ctx context.Context, instance gcloud.Instance) err
 	if err != nil {
 		return fmt.Errorf("failed to install go: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}
-	stderr, stdout, err = instance.Run(ctx, "echo '"+PATHWithGoBin+"' | sudo tee /etc/environment")
+	stderr, stdout, err = instance.Run(ctx, "sudo ln -s /usr/local/go/bin/go /usr/local/bin/go")
 	if err != nil {
 		return fmt.Errorf("failed to add go to PATH: %w\nSTDERR: %s\nSTDOUT: %s", err, stderr, stdout)
 	}
