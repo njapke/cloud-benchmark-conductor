@@ -27,11 +27,12 @@ func Setup() error {
 		return fmt.Errorf("failed to create cgroup manager: %w", err)
 	}
 
-	// setup two equally weighted child groups
-	weight := uint64(50)
+	// allow each version 150% CPU usage
+	quota := int64(150000)
+	period := uint64(100000)
 	resources := &cgroups.Resources{
 		CPU: &cgroups.CPU{
-			Weight: &weight,
+			Max: cgroups.NewCPUMax(&quota, &period),
 		},
 	}
 	_, err = m.NewChild("v1", resources)

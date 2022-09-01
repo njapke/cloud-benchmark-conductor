@@ -25,6 +25,7 @@ func getAppRunnerCmd(appConf *config.ConductorApplicationConfig) string {
 	}
 	if appConf.LimitCPU {
 		cmd = append(cmd, "--limit-cpu")
+		cmd = append([]string{"sudo"}, cmd...)
 	}
 	return strings.Join(cmd, " ")
 }
