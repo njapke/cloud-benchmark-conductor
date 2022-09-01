@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package v2
+package cgroups
 
 import (
 	"io/ioutil"

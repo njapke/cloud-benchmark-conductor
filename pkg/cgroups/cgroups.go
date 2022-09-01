@@ -3,7 +3,7 @@ package cgroups
 import (
 	"fmt"
 
-	"github.com/containerd/cgroups/v2"
+	"github.com/christophwitzko/master-thesis/internal/cgroups"
 )
 
 var (
@@ -12,22 +12,25 @@ var (
 )
 
 func Setup() error {
-	m, err := v2.LoadManager(defaultMountPoint, defaultCgroupName)
-	if err == nil {
-		err = m.Delete()
-		if err != nil {
-			return fmt.Errorf("failed to delete already existing cgroup: %v", err)
-		}
+	m, err := cgroups.LoadManager(defaultMountPoint, defaultCgroupName)
+	// return no error if group does not exist
+	if err != nil {
+		return err
 	}
-	m, err = v2.NewManager(defaultMountPoint, defaultCgroupName, &v2.Resources{CPU: &v2.CPU{}})
+	err = m.Delete()
+	if err != nil {
+		return fmt.Errorf("failed to delete already existing cgroup: %w", err)
+	}
+
+	m, err = cgroups.NewManager(defaultMountPoint, defaultCgroupName, &cgroups.Resources{CPU: &cgroups.CPU{}})
 	if err != nil {
 		return fmt.Errorf("failed to create cgroup manager: %w", err)
 	}
 
 	// setup two equally weighted child groups
 	weight := uint64(50)
-	resources := &v2.Resources{
-		CPU: &v2.CPU{
+	resources := &cgroups.Resources{
+		CPU: &cgroups.CPU{
 			Weight: &weight,
 		},
 	}
@@ -42,10 +45,10 @@ func Setup() error {
 	return nil
 }
 
-func AddProcess(name string, pid uint64) error {
-	m, err := v2.LoadManager(defaultMountPoint, defaultCgroupName+"/"+name)
+func AddProcess(name string, pid int) error {
+	m, err := cgroups.LoadManager(defaultMountPoint, defaultCgroupName+"/"+name)
 	if err != nil {
 		return err
 	}
-	return m.AddProc(pid)
+	return m.AddProc(uint64(pid))
 }

@@ -14,24 +14,24 @@
    limitations under the License.
 */
 
-package v2
+package cgroups
 
-import "strconv"
+import "strings"
 
-type Pids struct {
-	Max int64
+type HugeTlb []HugeTlbEntry
+
+type HugeTlbEntry struct {
+	HugePageSize string
+	Limit        uint64
 }
 
-func (r *Pids) Values() (o []Value) {
-	if r.Max != 0 {
-		limit := "max"
-		if r.Max > 0 {
-			limit = strconv.FormatInt(r.Max, 10)
-		}
+func (r *HugeTlb) Values() (o []Value) {
+	for _, e := range *r {
 		o = append(o, Value{
-			filename: "pids.max",
-			value:    limit,
+			filename: strings.Join([]string{"hugetlb", e.HugePageSize, "max"}, "."),
+			value:    e.Limit,
 		})
 	}
+
 	return o
 }

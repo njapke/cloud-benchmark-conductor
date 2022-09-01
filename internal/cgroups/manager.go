@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package v2
+package cgroups
 
 import (
 	"bufio"
@@ -30,13 +30,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups/v2/stats"
+	"github.com/christophwitzko/master-thesis/internal/cgroups/stats"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -46,9 +45,7 @@ const (
 	defaultSlice       = "system.slice"
 )
 
-var (
-	canDelegate bool
-)
+var canDelegate bool
 
 type Event struct {
 	Low     uint64
@@ -169,7 +166,7 @@ func writeValues(path string, values []Value) error {
 	return nil
 }
 
-func NewManager(mountpoint string, group string, resources *Resources) (*Manager, error) {
+func NewManager(mountpoint, group string, resources *Resources) (*Manager, error) {
 	if resources == nil {
 		return nil, errors.New("resources reference is nil")
 	}
@@ -196,7 +193,7 @@ func NewManager(mountpoint string, group string, resources *Resources) (*Manager
 	return &m, nil
 }
 
-func LoadManager(mountpoint string, group string) (*Manager, error) {
+func LoadManager(mountpoint, group string) (*Manager, error) {
 	if err := VerifyGroupPath(group); err != nil {
 		return nil, err
 	}
@@ -500,7 +497,7 @@ func getPidValue(key string, out map[string]interface{}) uint64 {
 	return 0
 }
 
-func readSingleFile(path string, file string, out map[string]interface{}) error {
+func readSingleFile(path, file string, out map[string]interface{}) error {
 	f, err := os.Open(filepath.Join(path, file))
 	if err != nil {
 		return err
@@ -521,7 +518,7 @@ func readSingleFile(path string, file string, out map[string]interface{}) error 
 	return nil
 }
 
-func readKVStatsFile(path string, file string, out map[string]interface{}) error {
+func readKVStatsFile(path, file string, out map[string]interface{}) error {
 	f, err := os.Open(filepath.Join(path, file))
 	if err != nil {
 		return err
@@ -580,28 +577,6 @@ func (c *Manager) isCgroupEmpty() bool {
 	return true
 }
 
-// MemoryEventFD returns inotify file descriptor and 'memory.events' inotify watch descriptor
-func (c *Manager) MemoryEventFD() (int, uint32, error) {
-	fpath := filepath.Join(c.path, "memory.events")
-	fd, err := syscall.InotifyInit()
-	if err != nil {
-		return 0, 0, errors.New("failed to create inotify fd")
-	}
-	wd, err := syscall.InotifyAddWatch(fd, fpath, unix.IN_MODIFY)
-	if err != nil {
-		syscall.Close(fd)
-		return 0, 0, fmt.Errorf("failed to add inotify watch for %q: %w", fpath, err)
-	}
-	// monitor to detect process exit/cgroup deletion
-	evpath := filepath.Join(c.path, "cgroup.events")
-	if _, err = syscall.InotifyAddWatch(fd, evpath, unix.IN_MODIFY); err != nil {
-		syscall.Close(fd)
-		return 0, 0, fmt.Errorf("failed to add inotify watch for %q: %w", evpath, err)
-	}
-
-	return fd, uint32(wd), nil
-}
-
 func (c *Manager) EventChan() (<-chan Event, <-chan error) {
 	ec := make(chan Event)
 	errCh := make(chan error, 1)
@@ -643,66 +618,6 @@ func parseMemoryEvents(out map[string]interface{}) (Event, error) {
 		}
 	}
 	return e, nil
-}
-
-func (c *Manager) waitForEvents(ec chan<- Event, errCh chan<- error) {
-	defer close(errCh)
-
-	fd, _, err := c.MemoryEventFD()
-	if err != nil {
-		errCh <- err
-		return
-	}
-	defer syscall.Close(fd)
-
-	for {
-		buffer := make([]byte, syscall.SizeofInotifyEvent*10)
-		bytesRead, err := syscall.Read(fd, buffer)
-		if err != nil {
-			errCh <- err
-			return
-		}
-		if bytesRead >= syscall.SizeofInotifyEvent {
-			out := make(map[string]interface{})
-			if err := readKVStatsFile(c.path, "memory.events", out); err != nil {
-				// When cgroup is deleted read may return -ENODEV instead of -ENOENT from open.
-				if _, statErr := os.Lstat(filepath.Join(c.path, "memory.events")); !os.IsNotExist(statErr) {
-					errCh <- err
-				}
-				return
-			}
-			e, err := parseMemoryEvents(out)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			ec <- e
-			if c.isCgroupEmpty() {
-				return
-			}
-		}
-	}
-}
-
-func setDevices(path string, devices []specs.LinuxDeviceCgroup) error {
-	if len(devices) == 0 {
-		return nil
-	}
-	insts, license, err := DeviceFilter(devices)
-	if err != nil {
-		return err
-	}
-	dirFD, err := unix.Open(path, unix.O_DIRECTORY|unix.O_RDONLY|unix.O_CLOEXEC, 0600)
-	if err != nil {
-		return fmt.Errorf("cannot get dir FD for %s", path)
-	}
-	defer unix.Close(dirFD)
-	if _, err := LoadAttachCgroupDeviceFilter(insts, license, dirFD); err != nil {
-		if !canSkipEBPFError(devices) {
-			return err
-		}
-	}
-	return nil
 }
 
 // getSystemdFullPath returns the full systemd path when creating a systemd slice group.

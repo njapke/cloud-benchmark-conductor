@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package v2
+package cgroups
 
 import (
 	"bufio"
@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/cgroups/v2/stats"
+	"github.com/christophwitzko/master-thesis/internal/cgroups/stats"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -37,7 +37,7 @@ import (
 
 const (
 	cgroupProcs    = "cgroup.procs"
-	defaultDirPerm = 0755
+	defaultDirPerm = 0o755
 )
 
 // defaultFilePerm is a var so that the test framework can change the filemode
@@ -134,9 +134,7 @@ func parseCgroupFile(path string) (string, error) {
 }
 
 func parseCgroupFromReader(r io.Reader) (string, error) {
-	var (
-		s = bufio.NewScanner(r)
-	)
+	s := bufio.NewScanner(r)
 	for s.Scan() {
 		var (
 			text  = s.Text()
@@ -383,8 +381,8 @@ func systemdUnitFromPath(path string) string {
 }
 
 func readHugeTlbStats(path string) []*stats.HugeTlbStat {
-	var usage = []*stats.HugeTlbStat{}
-	var keyUsage = make(map[string]*stats.HugeTlbStat)
+	usage := []*stats.HugeTlbStat{}
+	keyUsage := make(map[string]*stats.HugeTlbStat)
 	f, err := os.Open(path)
 	if err != nil {
 		return usage

@@ -23,3 +23,7 @@ linters-settings:
     enable-all: true
     disable:
       - fieldalignment
+
+run:
+  skip-dirs:
+    - internal/cgroups

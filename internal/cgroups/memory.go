@@ -14,50 +14,45 @@
    limitations under the License.
 */
 
-package v2
+package cgroups
 
-import "fmt"
-
-type IOType string
-
-const (
-	ReadBPS   IOType = "rbps"
-	WriteBPS  IOType = "wbps"
-	ReadIOPS  IOType = "riops"
-	WriteIOPS IOType = "wiops"
-)
-
-type BFQ struct {
-	Weight uint16
+type Memory struct {
+	Swap *int64
+	Min  *int64
+	Max  *int64
+	Low  *int64
+	High *int64
 }
 
-type Entry struct {
-	Type  IOType
-	Major int64
-	Minor int64
-	Rate  uint64
-}
-
-func (e Entry) String() string {
-	return fmt.Sprintf("%d:%d %s=%d", e.Major, e.Minor, e.Type, e.Rate)
-}
-
-type IO struct {
-	BFQ BFQ
-	Max []Entry
-}
-
-func (i *IO) Values() (o []Value) {
-	if i.BFQ.Weight != 0 {
+func (r *Memory) Values() (o []Value) {
+	if r.Swap != nil {
 		o = append(o, Value{
-			filename: "io.bfq.weight",
-			value:    i.BFQ.Weight,
+			filename: "memory.swap.max",
+			value:    *r.Swap,
 		})
 	}
-	for _, e := range i.Max {
+	if r.Min != nil {
 		o = append(o, Value{
-			filename: "io.max",
-			value:    e.String(),
+			filename: "memory.min",
+			value:    *r.Min,
+		})
+	}
+	if r.Max != nil {
+		o = append(o, Value{
+			filename: "memory.max",
+			value:    *r.Max,
+		})
+	}
+	if r.Low != nil {
+		o = append(o, Value{
+			filename: "memory.low",
+			value:    *r.Low,
+		})
+	}
+	if r.High != nil {
+		o = append(o, Value{
+			filename: "memory.high",
+			value:    *r.High,
 		})
 	}
 	return o
