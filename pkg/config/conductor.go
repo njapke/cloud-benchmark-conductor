@@ -54,6 +54,7 @@ type ConductorApplicationConfig struct {
 	Package      string
 	LogFilter    string `yaml:"logFilter"`
 	Env          []string
+	LimitCPU     bool `yaml:"limitCPU"`
 	Benchmark    *ConductorApplicationBenchmarkConfig
 }
 
@@ -181,6 +182,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			Package:      viper.GetString("application.package"),
 			LogFilter:    viper.GetString("application.logFilter"),
 			Env:          viper.GetStringSlice("application.env"),
+			LimitCPU:     viper.GetBool("application.limitCPU"),
 			Benchmark: &ConductorApplicationBenchmarkConfig{
 				InstanceType: applicationBenchmarkInstanceType,
 				Config:       viper.GetString("application.benchmark.config"),
@@ -248,6 +250,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("microbenchmark-instance-type", "", "microbenchmark instance type")
 	cmd.PersistentFlags().String("application-instance-type", "", "application instance type")
 	cmd.PersistentFlags().String("application-benchmark-instance-type", "", "application benchmark instance type")
+	cmd.PersistentFlags().Bool("application-limit-cpu", false, "limit application cpu")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -279,4 +282,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("microbenchmark.instanceType", cmd.PersistentFlags().Lookup("microbenchmark-instance-type")))
 	cli.Must(viper.BindPFlag("application.instanceType", cmd.PersistentFlags().Lookup("application-instance-type")))
 	cli.Must(viper.BindPFlag("application.benchmark.instanceType", cmd.PersistentFlags().Lookup("application-benchmark-instance-type")))
+	cli.Must(viper.BindPFlag("application.limitCPU", cmd.PersistentFlags().Lookup("application-limit-cpu")))
 }

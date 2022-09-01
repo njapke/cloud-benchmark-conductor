@@ -14,7 +14,7 @@ type actionInstallArtillery struct {
 	log *logger.Logger
 }
 
-func NewActionInstallArtillery(log *logger.Logger) *actionInstallArtillery {
+func NewActionInstallArtillery(log *logger.Logger) gcloud.Action {
 	return &actionInstallArtillery{log: log}
 }
 

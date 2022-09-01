@@ -14,7 +14,7 @@ type actionInstallGo struct {
 	log *logger.Logger
 }
 
-func NewActionInstallGo(log *logger.Logger) *actionInstallGo {
+func NewActionInstallGo(log *logger.Logger) gcloud.Action {
 	return &actionInstallGo{log: log}
 }
 

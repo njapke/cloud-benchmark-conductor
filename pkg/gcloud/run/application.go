@@ -23,6 +23,9 @@ func getAppRunnerCmd(appConf *config.ConductorApplicationConfig) string {
 	for _, env := range appConf.Env {
 		cmd = append(cmd, fmt.Sprintf("--env='%s'", env))
 	}
+	if appConf.LimitCPU {
+		cmd = append(cmd, "--limit-cpu")
+	}
 	return strings.Join(cmd, " ")
 }
 

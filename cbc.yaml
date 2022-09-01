@@ -41,6 +41,7 @@ application:
   package: ./cmd/flight-booking-service
   env:
     - LOG_LEVEL=info
+  limitCPU: true
   benchmark:
     instanceType: n2-highcpu-8
 #    config: ./artillery/config_80.yaml # main reaches 99%

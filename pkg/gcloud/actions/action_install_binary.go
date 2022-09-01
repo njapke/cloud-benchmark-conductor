@@ -16,7 +16,7 @@ type actionInstallBinary struct {
 	binary     assets.Binary
 }
 
-func NewActionInstallBinary(log *logger.Logger, name string, binary assets.Binary) *actionInstallBinary {
+func NewActionInstallBinary(log *logger.Logger, name string, binary assets.Binary) gcloud.Action {
 	return &actionInstallBinary{
 		log:        log,
 		binaryName: name,
