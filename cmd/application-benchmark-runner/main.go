@@ -191,10 +191,12 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	}
 
 	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
-	profilingConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
-	err = setup.CreateDirectory(profilingConf.OutputDir)
-	if err != nil {
-		return err
+	if shouldProfile {
+		profilingConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
+		err = setup.CreateDirectory(profilingConf.OutputDir)
+		if err != nil {
+			return err
+		}
 	}
 	targets := parseInputTargets(appBenchConfigDir, inputTargets)
 
