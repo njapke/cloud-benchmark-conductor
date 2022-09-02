@@ -47,9 +47,11 @@ func getAppBenchRunnerCmd(timeout time.Duration, appConf *config.ConductorApplic
 	cmd := []string{
 		"application-benchmark-runner",
 		fmt.Sprintf("--git-repository='%s' --reference='%s'", appConf.Repository, appConf.Benchmark.Reference),
-		fmt.Sprintf("--config='%s'", appConf.Benchmark.Config),
 		fmt.Sprintf("--results-output='%s'", resultsOutput),
 		fmt.Sprintf("--timeout=%s", timeout),
+	}
+	if appConf.Benchmark.Config != "" {
+		cmd = append(cmd, fmt.Sprintf("--config='%s'", appConf.Benchmark.Config))
 	}
 	if appConf.Benchmark.Tool != "" {
 		cmd = append(cmd, fmt.Sprintf("--tool=%s", appConf.Benchmark.Tool))
@@ -74,9 +76,14 @@ func ApplicationBenchmark(ctx context.Context, log *logger.Logger, service gclou
 
 	log.Infof("[%s] external IP: %s", runnerName, instance.ExternalIP())
 	log.Infof("[%s] setting up instance...", runnerName)
+	var installBenchmarkTool gcloud.Action
+	if appConf.Benchmark.Tool == "k6" {
+		installBenchmarkTool = actions.NewActionInstallArtillery(log)
+	} else {
+		installBenchmarkTool = actions.NewActionInstallBinary(log, "k6", assets.K6)
+	}
 	err = instance.ExecuteActions(ctx,
-		actions.NewActionInstallBinary(log, "k6", assets.K6),
-		actions.NewActionInstallArtillery(log),
+		installBenchmarkTool,
 		actions.NewActionInstallBinary(log, "application-benchmark-runner", assets.ApplicationBenchmarkRunner),
 	)
 	if err != nil {
