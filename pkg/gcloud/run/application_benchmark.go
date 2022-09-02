@@ -51,6 +51,9 @@ func getAppBenchRunnerCmd(timeout time.Duration, appConf *config.ConductorApplic
 		fmt.Sprintf("--results-output='%s'", resultsOutput),
 		fmt.Sprintf("--timeout=%s", timeout),
 	}
+	if appConf.Benchmark.Tool != "" {
+		cmd = append(cmd, fmt.Sprintf("--tool=%s", appConf.Benchmark.Tool))
+	}
 	for _, target := range targets {
 		cmd = append(cmd, fmt.Sprintf("--target='%s'", target))
 	}
