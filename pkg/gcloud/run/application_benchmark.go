@@ -72,6 +72,7 @@ func ApplicationBenchmark(ctx context.Context, log *logger.Logger, service gclou
 	log.Infof("[%s] external IP: %s", runnerName, instance.ExternalIP())
 	log.Infof("[%s] setting up instance...", runnerName)
 	err = instance.ExecuteActions(ctx,
+		actions.NewActionInstallBinary(log, "k6", assets.K6),
 		actions.NewActionInstallArtillery(log),
 		actions.NewActionInstallBinary(log, "application-benchmark-runner", assets.ApplicationBenchmarkRunner),
 	)

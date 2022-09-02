@@ -2,10 +2,19 @@
 
 set -euo pipefail
 
-export CGO_ENABLED=0
+k6Version="0.39.0"
+k6DownloadURL="https://github.com/grafana/k6/releases/download/v${k6Version}/k6-v${k6Version}-linux-amd64.tar.gz"
+k6AssetPath="./pkg/assets/k6_linux_amd64"
 
+[[ -f "$k6AssetPath" ]] || {
+    echo "downloading k6..."
+    curl -SL "$k6DownloadURL" | tar xvf - --strip-components=1 "k6-v${k6Version}-linux-amd64/k6"
+    mv ./k6 "$k6AssetPath"
+}
+
+export CGO_ENABLED=0
 function gobuild() {
-    go build -trimpath -ldflags="-s -w -extldflags '-static'" $@
+    go build -trimpath -ldflags="-s -w -extldflags '-static'" "$@"
 }
 
 echo "building microbenchmark-runner..."

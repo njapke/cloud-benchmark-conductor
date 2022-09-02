@@ -27,3 +27,6 @@ var ApplicationRunner Binary
 
 //go:embed app-bench-runner_linux_amd64
 var ApplicationBenchmarkRunner Binary
+
+//go:embed k6_linux_amd64
+var K6 Binary

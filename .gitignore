@@ -7,6 +7,7 @@ google-application-credentials.json
 pkg/assets/mb-runner_linux_amd64
 pkg/assets/app-runner_linux_amd64
 pkg/assets/app-bench-runner_linux_amd64
+pkg/assets/k6_linux_amd64
 _scripts_from_paper/
 
 cloud-benchmark-conductor
