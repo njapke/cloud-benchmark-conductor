@@ -20,12 +20,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var (
+	defaultArtilleryConfig = "./artillery/config.yaml"
+	defaultK6Config        = "./k6/script.js"
+)
+
 func main() {
 	log := logger.New()
 	rootCmd := &cobra.Command{
 		Use:   "application-benchmark-runner",
 		Short: "application benchmark runner tool",
-		Long:  "This tool is used to run the application benchmarks using artillery.",
+		Long:  "This tool is used to run the application benchmarks using artillery or k6.",
 		Args:  cobra.NoArgs,
 		Run:   cli.WrapRunE(log, rootRun),
 		CompletionOptions: cobra.CompletionOptions{
@@ -35,7 +40,7 @@ func main() {
 	rootCmd.Flags().String("reference", "", "git reference or source path of the desired application benchmark config")
 	rootCmd.Flags().String("git-repository", "", "git repository to use for installing the applications")
 	rootCmd.Flags().String("benchmark-directory", "/tmp/.appbench", "directory to use for running the application benchmarks")
-	rootCmd.Flags().String("config", "./artillery/config.yaml", "location of the application benchmark config relative to the repository root or provided source path")
+	rootCmd.Flags().String("config", defaultArtilleryConfig, "location of the application benchmark config or script relative to the repository root or provided source path")
 	rootCmd.Flags().StringArray("target", []string{"v1=127.0.0.1:3000"}, "target to run the application benchmark on")
 	rootCmd.Flags().String("results-output", "", "path where the results should be stored [e.g. gs://ab-results/app]")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
@@ -43,13 +48,18 @@ func main() {
 	rootCmd.Flags().String("profiling-endpoint", "/debug/pprof/profile", "pprof endpoint to use for profiling")
 	rootCmd.Flags().Duration("profiling-interval", 5*time.Minute, "profiling interval")
 	rootCmd.Flags().Duration("profiling-duration", 30*time.Second, "profiling duration")
+	rootCmd.Flags().String("tool", "artillery", "tool to run the benchmarks [artillery or k6]")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseInputTargets(configDir string, inputTargets []string) []*benchmark.TargetInfo {
+func parseInputTargets(config *benchmark.Config, inputTargets []string) []*benchmark.TargetInfo {
+	fileExtenstion := "json"
+	if config.Tool == "k6" {
+		fileExtenstion = "csv"
+	}
 	targets := make([]*benchmark.TargetInfo, 0, len(inputTargets))
 	for _, target := range inputTargets {
 		targetName := target
@@ -61,8 +71,8 @@ func parseInputTargets(configDir string, inputTargets []string) []*benchmark.Tar
 			Name:     targetName,
 			Endpoint: targetEndpoint,
 			OutputFile: filepath.Join(
-				configDir,
-				fmt.Sprintf("%s.json", targetName),
+				config.ConfigDir,
+				fmt.Sprintf("%s.%s", targetName, fileExtenstion),
 			),
 		}
 		targets = append(targets, newTarget)
@@ -149,6 +159,7 @@ func waitForTargets(ctx context.Context, log *logger.Logger, targets []*benchmar
 	return errGroup.Wait()
 }
 
+//gocyclo:ignore
 func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	referenceOrPath := cli.MustGetString(cmd, "reference")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
@@ -162,6 +173,17 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		Endpoint: cli.MustGetString(cmd, "profiling-endpoint"),
 		Interval: cli.MustGetDuration(cmd, "profiling-interval"),
 		Duration: cli.MustGetDuration(cmd, "profiling-duration"),
+	}
+	appBenchTool := strings.ToLower(cli.MustGetString(cmd, "tool"))
+
+	if appBenchTool != "artillery" && appBenchTool != "k6" {
+		return fmt.Errorf("invalid benchmark tool: %s", appBenchTool)
+	}
+	log.Infof("application benchmarking tool: %s", appBenchTool)
+
+	// if config is not set bu the tool is set, use the default config for the tool
+	if appBenchTool == "k6" && !cmd.Flags().Changed("config") {
+		relConfigFile = defaultK6Config
 	}
 
 	if referenceOrPath == "" {
@@ -181,7 +203,10 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	ctx, cancel := cli.NewContext(timeout)
 	defer cancel()
 
+	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
 	appBenchConfig := &benchmark.Config{
+		Tool:       appBenchTool,
+		ConfigDir:  appBenchConfigDir,
 		ConfigFile: appBenchConfigFile,
 		OutputPath: resultsOutputPath,
 	}
@@ -190,7 +215,6 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	appBenchConfigDir := filepath.Dir(appBenchConfigFile)
 	if shouldProfile {
 		profilingConf.OutputDir = filepath.Join(appBenchConfigDir, "profile")
 		err = setup.CreateDirectory(profilingConf.OutputDir)
@@ -198,7 +222,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	targets := parseInputTargets(appBenchConfigDir, inputTargets)
+	targets := parseInputTargets(appBenchConfig, inputTargets)
 
 	log.Info("waiting for targets to be ready....")
 	err = waitForTargets(ctx, log, targets)
@@ -206,7 +230,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Info("starting artillery...")
+	log.Infof("starting %s...", appBenchTool)
 	errGroup, groupCtx := errgroup.WithContext(ctx)
 	// the profile context is linked to the group error group
 	// with their own cancel function
@@ -215,7 +239,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	for _, targetInfo := range targets {
 		targetInfo := targetInfo
 		errGroup.Go(func() error {
-			return benchmark.RunArtillery(groupCtx, log, appBenchConfig, targetInfo)
+			return benchmark.Run(groupCtx, log, appBenchConfig, targetInfo)
 		})
 		if shouldProfile {
 			profileGroup.Go(func() error {
@@ -236,17 +260,20 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof("creating combined results csv...")
-	resultCSV, err := benchmark.ReadArtilleryResultToCSV(targets)
-	if err != nil {
-		return err
+	if appBenchTool == "artillery" {
+		log.Infof("creating combined results csv...")
+		resultCSV, err := benchmark.ReadArtilleryResultToCSV(targets)
+		if err != nil {
+			return err
+		}
+		log.Infof("uploading combined results...")
+		err = appBenchConfig.UploadToBucketFromReader(ctx, "combined-results.csv", resultCSV)
+		if err != nil {
+			return err
+		}
+		log.Infof("uploaded to %s", appBenchConfig.GetOutputObjectName("combined-results.csv"))
 	}
-	log.Infof("uploading combined results...")
-	err = appBenchConfig.UploadToBucketFromReader(ctx, "combined-results.csv", resultCSV)
-	if err != nil {
-		return err
-	}
-	log.Infof("uploaded to %s", appBenchConfig.GetOutputObjectName("combined-results.csv"))
+
 	log.Infof("done.")
 	return nil
 }

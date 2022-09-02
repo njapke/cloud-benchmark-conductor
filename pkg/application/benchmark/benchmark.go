@@ -15,9 +15,12 @@ import (
 )
 
 type Config struct {
-	ConfigFile                   string
-	OutputPath                   string
-	outputURLHost, outputURLPath string
+	Tool          string
+	ConfigDir     string
+	ConfigFile    string
+	OutputPath    string
+	outputURLHost string
+	outputURLPath string
 }
 
 func (c *Config) Validate() error {
@@ -54,16 +57,34 @@ func (t *TargetInfo) OutputFileName() string {
 	return filepath.Base(t.OutputFile)
 }
 
-func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targetInfo *TargetInfo) error {
-	args := []string{
-		"run",
-		fmt.Sprintf("--target=http://%s", targetInfo.Endpoint),
-		fmt.Sprintf("--output=%s", targetInfo.OutputFile),
-		config.ConfigFile,
+func Run(ctx context.Context, log *logger.Logger, config *Config, targetInfo *TargetInfo) error {
+	var args []string
+	switch config.Tool {
+	case "artillery":
+		args = []string{
+			"run",
+			fmt.Sprintf("--target=http://%s", targetInfo.Endpoint),
+			fmt.Sprintf("--output=%s", targetInfo.OutputFile),
+			config.ConfigFile,
+		}
+	case "k6":
+		args = []string{
+			"run",
+			"--env", fmt.Sprintf("target=%s", targetInfo.Endpoint),
+			"--tag", fmt.Sprintf("version=%s", targetInfo.Name),
+			"--out", fmt.Sprintf("csv=%s", targetInfo.OutputFile),
+			config.ConfigFile,
+		}
+	default:
+		return fmt.Errorf("unknown benchmark tool: %s", config.Tool)
 	}
-	log.Infof("[%s] running: artillery %s", targetInfo.Name, strings.Join(args, " "))
-	cmd := exec.CommandContext(ctx, "artillery", args...)
-	cmd.Dir = filepath.Dir(config.ConfigFile)
+	return runWithArgs(ctx, log, config, targetInfo, args)
+}
+
+func runWithArgs(ctx context.Context, log *logger.Logger, config *Config, targetInfo *TargetInfo, args []string) error {
+	log.Infof("[%s] running: %s %s", targetInfo.Name, config.Tool, strings.Join(args, " "))
+	cmd := exec.CommandContext(ctx, config.Tool, args...)
+	cmd.Dir = config.ConfigDir
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
@@ -72,10 +93,10 @@ func RunArtillery(ctx context.Context, log *logger.Logger, config *Config, targe
 	go log.PrefixedReader(logPrefix, logPipeRead)
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("artillery run failed: %w", err)
+		return fmt.Errorf("%s run failed: %w", config.Tool, err)
 	}
 
-	log.Infof("[%s] artillery run finished", targetInfo.Name)
+	log.Infof("[%s] %s run finished", targetInfo.Name, config.Tool)
 	if config.outputURLHost == "" {
 		log.Warnf("[%s] no results output configured, skipping upload", targetInfo.Name)
 		return nil
