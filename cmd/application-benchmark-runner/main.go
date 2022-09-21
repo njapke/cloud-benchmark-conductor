@@ -49,6 +49,7 @@ func main() {
 	rootCmd.Flags().Duration("profiling-interval", 5*time.Minute, "profiling interval")
 	rootCmd.Flags().Duration("profiling-duration", 30*time.Second, "profiling duration")
 	rootCmd.Flags().String("tool", "artillery", "tool to run the benchmarks [artillery or k6]")
+	rootCmd.Flags().StringArray("env", []string{}, "additional environment variables to set")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -175,13 +176,14 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		Duration: cli.MustGetDuration(cmd, "profiling-duration"),
 	}
 	appBenchTool := strings.ToLower(cli.MustGetString(cmd, "tool"))
+	envConfig := cli.MustGetStringArray(cmd, "env")
 
 	if appBenchTool != "artillery" && appBenchTool != "k6" {
 		return fmt.Errorf("invalid benchmark tool: %s", appBenchTool)
 	}
 	log.Infof("application benchmarking tool: %s", appBenchTool)
 
-	// if config is not set bu the tool is set, use the default config for the tool
+	// if config is not set but the tool is set, use the default config for the tool
 	if appBenchTool == "k6" && !cmd.Flags().Changed("config") {
 		relConfigFile = defaultK6Config
 	}
@@ -209,6 +211,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 		ConfigDir:  appBenchConfigDir,
 		ConfigFile: appBenchConfigFile,
 		OutputPath: resultsOutputPath,
+		Env:        envConfig,
 	}
 	err = appBenchConfig.Validate()
 	if err != nil {

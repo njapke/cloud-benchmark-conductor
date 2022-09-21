@@ -21,6 +21,7 @@ type Config struct {
 	OutputPath    string
 	outputURLHost string
 	outputURLPath string
+	Env           []string
 }
 
 func (c *Config) Validate() error {
@@ -70,11 +71,14 @@ func Run(ctx context.Context, log *logger.Logger, config *Config, targetInfo *Ta
 	case "k6":
 		args = []string{
 			"run",
-			"--env", fmt.Sprintf("target=%s", targetInfo.Endpoint),
 			"--tag", fmt.Sprintf("version=%s", targetInfo.Name),
 			"--out", fmt.Sprintf("csv=%s", targetInfo.OutputFile),
-			config.ConfigFile,
+			"--env", fmt.Sprintf("target=%s", targetInfo.Endpoint),
 		}
+		for _, e := range config.Env {
+			args = append(args, "--env", e)
+		}
+		args = append(args, config.ConfigFile)
 	default:
 		return fmt.Errorf("unknown benchmark tool: %s", config.Tool)
 	}

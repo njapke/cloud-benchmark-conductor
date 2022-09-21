@@ -59,6 +59,9 @@ func getAppBenchRunnerCmd(timeout time.Duration, appConf *config.ConductorApplic
 	for _, target := range targets {
 		cmd = append(cmd, fmt.Sprintf("--target='%s'", target))
 	}
+	for _, env := range appConf.Benchmark.Env {
+		cmd = append(cmd, fmt.Sprintf("--env='%s'", env))
+	}
 	return strings.Join(cmd, " "), nil
 }
 
@@ -78,9 +81,9 @@ func ApplicationBenchmark(ctx context.Context, log *logger.Logger, service gclou
 	log.Infof("[%s] setting up instance...", runnerName)
 	var installBenchmarkTool gcloud.Action
 	if appConf.Benchmark.Tool == "k6" {
-		installBenchmarkTool = actions.NewActionInstallArtillery(log)
-	} else {
 		installBenchmarkTool = actions.NewActionInstallBinary(log, "k6", assets.K6)
+	} else {
+		installBenchmarkTool = actions.NewActionInstallArtillery(log)
 	}
 	err = instance.ExecuteActions(ctx,
 		installBenchmarkTool,
