@@ -43,12 +43,12 @@ application:
     - LOG_LEVEL=info
   limitCPU: true
   benchmark:
-    instanceType: n2-highcpu-8
+    instanceType: n2-highcpu-4
     tool: k6
     reference: main
     env:
       - searchFlights_vus=50
-      - searchFlights_iterations=100
+      - searchFlights_iterations=2000
       - searchAndBookFlight_vus=10
-      - searchAndBookFlight_iterations=100
+      - searchAndBookFlight_iterations=380
     output: gs://cbc-results/{{.Name}}/ab-{{.V1}}-{{.V2}}-{{.Timestamp}}
