@@ -59,7 +59,7 @@ func main() {
 func parseInputTargets(config *benchmark.Config, inputTargets []string) []*benchmark.TargetInfo {
 	fileExtenstion := "json"
 	if config.Tool == "k6" {
-		fileExtenstion = "csv"
+		fileExtenstion = "csv.gz"
 	}
 	targets := make([]*benchmark.TargetInfo, 0, len(inputTargets))
 	for _, target := range inputTargets {
