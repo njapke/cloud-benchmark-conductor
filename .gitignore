@@ -19,8 +19,6 @@ application-runner
 application-benchmark-runner
 !application-benchmark-runner/
 
-*.csv
 test-key
 bin-linux-arm64
-*.png
 analysis/venv/
