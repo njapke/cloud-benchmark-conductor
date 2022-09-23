@@ -26,10 +26,12 @@ microbenchmark:
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  includeFilter: "^database.*$"
-  excludeFilter: "^chi.*$"
-#  functions:
-#    - main.BenchmarkSplit
-#    - foo.BenchmarkStringsCut
+#  excludeFilter: "^chi.*$"
+  functions:
+    - service.BenchmarkRequestFlightsQuery
+    - service.BenchmarkHandlerCreateBooking
+    - service.BenchmarkHandlerGetFlightSeats
+    - service.BenchmarkRequestDestinations
 
 application:
   name: fbs
