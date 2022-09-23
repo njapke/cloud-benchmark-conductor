@@ -5,19 +5,23 @@ package asm
 // BuiltinFunc is a built-in eBPF function.
 type BuiltinFunc int32
 
+func (_ BuiltinFunc) Max() BuiltinFunc {
+	return maxBuiltinFunc - 1
+}
+
 // eBPF built-in functions
 //
-// You can renegerate this list using the following gawk script:
+// You can regenerate this list using the following gawk script:
 //
-//    /FN\(.+\),/ {
-//      match($1, /\((.+)\)/, r)
-//      split(r[1], p, "_")
-//      printf "Fn"
-//      for (i in p) {
-//        printf "%s%s", toupper(substr(p[i], 1, 1)), substr(p[i], 2)
-//      }
-//      print ""
-//    }
+//	/FN\(.+\),/ {
+//	  match($1, /\((.+)\)/, r)
+//	  split(r[1], p, "_")
+//	  printf "Fn"
+//	  for (i in p) {
+//	    printf "%s%s", toupper(substr(p[i], 1, 1)), substr(p[i], 2)
+//	  }
+//	  print ""
+//	}
 //
 // The script expects include/uapi/linux/bpf.h as it's input.
 const (
@@ -132,6 +136,101 @@ const (
 	FnSkStorageDelete
 	FnSendSignal
 	FnTcpGenSyncookie
+	FnSkbOutput
+	FnProbeReadUser
+	FnProbeReadKernel
+	FnProbeReadUserStr
+	FnProbeReadKernelStr
+	FnTcpSendAck
+	FnSendSignalThread
+	FnJiffies64
+	FnReadBranchRecords
+	FnGetNsCurrentPidTgid
+	FnXdpOutput
+	FnGetNetnsCookie
+	FnGetCurrentAncestorCgroupId
+	FnSkAssign
+	FnKtimeGetBootNs
+	FnSeqPrintf
+	FnSeqWrite
+	FnSkCgroupId
+	FnSkAncestorCgroupId
+	FnRingbufOutput
+	FnRingbufReserve
+	FnRingbufSubmit
+	FnRingbufDiscard
+	FnRingbufQuery
+	FnCsumLevel
+	FnSkcToTcp6Sock
+	FnSkcToTcpSock
+	FnSkcToTcpTimewaitSock
+	FnSkcToTcpRequestSock
+	FnSkcToUdp6Sock
+	FnGetTaskStack
+	FnLoadHdrOpt
+	FnStoreHdrOpt
+	FnReserveHdrOpt
+	FnInodeStorageGet
+	FnInodeStorageDelete
+	FnDPath
+	FnCopyFromUser
+	FnSnprintfBtf
+	FnSeqPrintfBtf
+	FnSkbCgroupClassid
+	FnRedirectNeigh
+	FnPerCpuPtr
+	FnThisCpuPtr
+	FnRedirectPeer
+	FnTaskStorageGet
+	FnTaskStorageDelete
+	FnGetCurrentTaskBtf
+	FnBprmOptsSet
+	FnKtimeGetCoarseNs
+	FnImaInodeHash
+	FnSockFromFile
+	FnCheckMtu
+	FnForEachMapElem
+	FnSnprintf
+	FnSysBpf
+	FnBtfFindByNameKind
+	FnSysClose
+	FnTimerInit
+	FnTimerSetCallback
+	FnTimerStart
+	FnTimerCancel
+	FnGetFuncIp
+	FnGetAttachCookie
+	FnTaskPtRegs
+	FnGetBranchSnapshot
+	FnTraceVprintk
+	FnSkcToUnixSock
+	FnKallsymsLookupName
+	FnFindVma
+	FnLoop
+	FnStrncmp
+	FnGetFuncArg
+	FnGetFuncRet
+	FnGetFuncArgCnt
+	FnGetRetval
+	FnSetRetval
+	FnXdpGetBuffLen
+	FnXdpLoadBytes
+	FnXdpStoreBytes
+	FnCopyFromUserTask
+	FnSkbSetTstamp
+	FnImaFileHash
+	FnKptrXchg
+	FnMapLookupPercpuElem
+	FnSkcToMptcpSock
+	FnDynptrFromMem
+	FnRingbufReserveDynptr
+	FnRingbufSubmitDynptr
+	FnRingbufDiscardDynptr
+	FnDynptrRead
+	FnDynptrWrite
+	FnDynptrData
+
+	maxBuiltinFunc
 )
 
 // Call emits a function call.
