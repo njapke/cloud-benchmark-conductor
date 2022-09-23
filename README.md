@@ -21,6 +21,9 @@ Uses the tools form above to run micro and application benchmarks in the cloud.
 ./cloud-benchmark-conductor ab
 ./cloud-benchmark-conductor cleanup
 gsutil cp -r gs://cbc-results/fbs ./results/
+
+# combine mb results
+./scripts/combine-mb-results.sh ./results
 ```
 
 ## Profiling
@@ -45,21 +48,10 @@ gsutil cp -r gs://cbc-results/fbs ./results/
 ```
 
 ## Running gocg
-
 ```bash
 gsutil cp -r gs://cbc-results/mb-profiles ./profiling
 gsutil cp -r gs://cbc-results/ab-profiles ./profiling
 
 ./scripts/fix-dot-files.sh ./profiling
-
-../mt-gocg/gocg-overlap github.com/christophwitzko/flight-booking-service \
-  ./profiling/ab-profiles/ \
-  ./profiling/mb-profiles/ \
-  ./gocg-results/
-
-../mt-gocg/gocg-minimization github.com/christophwitzko/flight-booking-service \
-  ./profiling/ab-profiles/ \
-  ./profiling/mb-profiles/ \
-  ./gocg-results/
-
+./scripts/run-gocg.sh
 ```
