@@ -218,9 +218,10 @@ func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter
 	rng.Shuffle(len(newFns), func(i, j int) {
 		newFns[i], newFns[j] = newFns[j], newFns[i]
 	})
-
-	for _, function := range newFns {
-		log.Infof("--| benchmarking: %s", function.String())
+	lenFns := float64(len(newFns))
+	for i, function := range newFns {
+		fnPercentage := float64(i+1) * 100 / lenFns
+		log.Infof("--| R%d-S%d (%.2f%%) benchmarking: %s", run, suite, fnPercentage, function.String())
 		err := RunVersionedFunction(ctx, rng, log, resultWriter, function, run, suite)
 		if err != nil {
 			return err
