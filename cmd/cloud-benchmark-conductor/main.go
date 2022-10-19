@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/christophwitzko/master-thesis/pkg/cli"
 	"github.com/christophwitzko/master-thesis/pkg/config"
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	log := logger.New()
+	startTime := time.Now()
 	rootCmd := &cobra.Command{
 		Use:   "cloud-benchmark-conductor",
 		Short: "cloud benchmark conductor",
@@ -23,6 +25,9 @@ Therefore compute instances are provisioned and used to execute the benchmarks.`
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			log.Info(cli.GetBuildInfo())
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			log.Infof("runtime: %v", time.Since(startTime).Round(time.Second))
 		},
 	}
 	cobra.OnInitialize(func() {
