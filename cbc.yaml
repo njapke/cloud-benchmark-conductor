@@ -11,7 +11,7 @@ sshPrivateKey: |
   AAAECyCqtlSb/bjV0Jgv+ZyHMUM77ZPg7fmFW2Is8gkDXhwJMVHWdgPhyKA/ci2RAWuNsK
   vu9cxdz0nidTFZdUZrfWAAAABnVidW50dQECAwQFBgc=
   -----END OPENSSH PRIVATE KEY-----
-goVersion: 1.19
+goVersion: 1.19.3
 timeout: 90m
 
 microbenchmark:
@@ -23,15 +23,16 @@ microbenchmark:
   v2: main
 #  v2: perf-issue-clean-path
 #  v2: perf-issue-request-id
+#  v2: perf-issue-basic-auth
   outputs:
-    - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-#  includeFilter: "^database.*$"
+#    - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+    - gs://cbc-results/{{.Name}}/mb-opt-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  excludeFilter: "^chi.*$"
   functions:
-    - service.BenchmarkRequestFlightsQuery
-    - service.BenchmarkHandlerCreateBooking
+    - service.BenchmarkRequestFlights
     - service.BenchmarkHandlerGetFlightSeats
     - service.BenchmarkRequestDestinations
+    - service.BenchmarkRequestCreateBooking
 
 application:
   name: fbs
@@ -40,6 +41,7 @@ application:
   v2: main
 #  v2: perf-issue-clean-path
 #  v2: perf-issue-request-id
+#  v2: perf-issue-basic-auth
   package: ./cmd/flight-booking-service
   env:
     - LOG_LEVEL=info

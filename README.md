@@ -17,9 +17,26 @@ Uses the tools form above to run micro and application benchmarks in the cloud.
 ## Running the benchmarks
 ```bash
 ./scripts/build.sh
-./cloud-benchmark-conductor mb
-./cloud-benchmark-conductor ab
-./cloud-benchmark-conductor cleanup
+
+# application benchmark
+./cloud-benchmark-conductor ab --application-v2 main && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor ab --application-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor ab --application-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor ab --application-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
+
+# full microbenchmark suite
+./cloud-benchmark-conductor mb --microbenchmark-v2 main && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
+
+# configure optimized microbenchmark suite
+./cloud-benchmark-conductor mb --microbenchmark-v2 main && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
+./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
+
+# download results
 gsutil cp -r gs://cbc-results/fbs ./results/
 
 # combine mb results
@@ -49,9 +66,11 @@ gsutil cp -r gs://cbc-results/fbs ./results/
 
 ## Running gocg
 ```bash
+rm -rf profiling && mkdir profiling
 gsutil cp -r gs://cbc-results/mb-profiles ./profiling
 gsutil cp -r gs://cbc-results/ab-profiles ./profiling
 
 ./scripts/fix-dot-files.sh ./profiling
 ./scripts/run-gocg.sh
+open ./gocg-results/ab-profiles_struct_node_overlap_mins-GreedySystem.csv
 ```
