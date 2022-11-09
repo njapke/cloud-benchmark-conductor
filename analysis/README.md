@@ -9,32 +9,40 @@ pip install jupyter numpy pandas seaborn matplotlib
 
 # main
 ```
-[GET_${}/destinations] performance change: 2.20% [1.01 - 3.42] (2.41%)
-[GET_${}/flights/${}/seats] performance change: 2.20% [-4.88 - 11.59] (16.47%)
-[GET_${}/flights?from=${}] performance change: 2.33% [1.19 - 3.55] (2.36%)
-[POST_${}/bookings] performance change: -1.68% [-10.83 - 8.83] (19.65%)
+[searchAndBookFlight - GET /destinations] performance change: 0.13% [-5.80 - 7.36] (13.17%)
+[searchAndBookFlight - GET /flights/${}/seats] performance change: 2.20% [-4.73 - 11.80] (16.54%)
+[searchAndBookFlight - GET /flights?from=${}] performance change: 6.39% [-0.20 - 13.23] (13.44%)
+[searchAndBookFlight - POST /bookings] performance change: -1.68% [-10.88 - 9.27] (20.14%)
+[searchFlights - GET /destinations] performance change: 2.16% [1.04 - 3.43] (2.39%)
+[searchFlights - GET /flights?from=${}] performance change: 2.16% [1.04 - 3.39] (2.35%)
 ```
 
 # perf-issue-clean-path
 ```
-[GET_${}/destinations] performance change: 14.25% [13.03 - 15.43] (2.40%)
-[GET_${}/flights/${}/seats] performance change: 41.53% [30.96 - 51.08] (20.12%)
-[GET_${}/flights?from=${}] performance change: 16.17% [15.01 - 17.33] (2.31%)
-[POST_${}/bookings] performance change: 25.90% [15.28 - 38.68] (23.40%)
+[searchAndBookFlight - GET /destinations] performance change: 48.80% [42.35 - 55.51] (13.16%)
+[searchAndBookFlight - GET /flights/${}/seats] performance change: 165.32% [148.90 - 182.02] (33.12%)
+[searchAndBookFlight - GET /flights?from=${}] performance change: 48.81% [42.30 - 56.67] (14.36%)
+[searchAndBookFlight - POST /bookings] performance change: 90.81% [80.30 - 107.32] (27.02%)
+[searchFlights - GET /destinations] performance change: 47.40% [46.03 - 48.76] (2.73%)
+[searchFlights - GET /flights?from=${}] performance change: 49.85% [48.52 - 51.20] (2.68%)
 ```
 
 # perf-issue-request-id
 ```
-[GET_${}/destinations] performance change: 1546.71% [1522.69 - 1569.22] (46.53%)
-[GET_${}/flights/${}/seats] performance change: 3842.36% [3483.53 - 4272.50] (788.97%)
-[GET_${}/flights?from=${}] performance change: 1243.01% [1226.57 - 1261.47] (34.89%)
-[POST_${}/bookings] performance change: 5805.06% [4741.58 - 7044.01] (2302.43%)
+[searchAndBookFlight - GET /destinations] performance change: 1471.81% [1371.52 - 1599.09] (227.57%)
+[searchAndBookFlight - GET /flights/${}/seats] performance change: 3842.36% [3475.19 - 4248.49] (773.30%)
+[searchAndBookFlight - GET /flights?from=${}] performance change: 1143.18% [1063.71 - 1230.51] (166.80%)
+[searchAndBookFlight - POST /bookings] performance change: 5805.06% [4709.97 - 7056.43] (2346.46%)
+[searchFlights - GET /destinations] performance change: 1549.83% [1524.49 - 1573.43] (48.94%)
+[searchFlights - GET /flights?from=${}] performance change: 1247.78% [1231.42 - 1265.78] (34.37%)
 ```
 
 # perf-issue-basic-auth
 ```
-[GET_${}/destinations] performance change: -0.84% [-1.91 - 0.25] (2.16%)
-[GET_${}/flights/${}/seats] performance change: -2.53% [-11.76 - 5.51] (17.27%)
-[GET_${}/flights?from=${}] performance change: -1.28% [-2.43 - -0.24] (2.19%)
-[POST_${}/bookings] performance change: 8.79% [-4.23 - 23.72] (27.94%)
+[searchAndBookFlight - GET /destinations] performance change: 21.56% [14.28 - 27.51] (13.23%)
+[searchAndBookFlight - GET /flights/${}/seats] performance change: 20.03% [11.03 - 30.79] (19.76%)
+[searchAndBookFlight - GET /flights?from=${}] performance change: 10.88% [4.04 - 16.46] (12.42%)
+[searchAndBookFlight - POST /bookings] performance change: 333.17% [299.98 - 368.41] (68.43%)
+[searchFlights - GET /destinations] performance change: 16.50% [15.13 - 18.04] (2.91%)
+[searchFlights - GET /flights?from=${}] performance change: 16.33% [14.99 - 17.63] (2.65%)
 ```
