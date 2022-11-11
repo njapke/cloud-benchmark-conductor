@@ -1,0 +1,29 @@
+@startuml
+
+skinparam nodesep 30
+skinparam ranksep 120
+skinparam linetype ortho
+
+agent "Benchmark Application" as ba
+
+folder "Benchmark Toolchain" {
+    agent "Application Benchmark" as ab
+    agent "Full Microbenchmark Suite" as mb
+    agent "Optimized Microbenchmark Suite" as ob
+}
+
+folder "Benchmark Results" {
+    agent "Application Centric Metrics" as am
+    agent "Function Centric Metrics" as fm
+    agent "Reduced Function Centric Metrics" as rfm
+}
+
+ba --> ab
+ba --> mb
+ba --> ob
+
+ab --> am
+mb --> fm
+ob --> rfm
+
+@enduml
