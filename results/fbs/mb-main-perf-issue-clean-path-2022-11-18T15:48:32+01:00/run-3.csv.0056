@@ -1,0 +1,10 @@
+3-3-1,service.BenchmarkRequestBookings,2,pkg/service/service_test.go,1987,0.000605221,138499,1834
+3-3-2,service.BenchmarkRequestBookings,2,pkg/service/service_test.go,1932,0.000610588,139055,1836
+3-3-3,service.BenchmarkRequestBookings,2,pkg/service/service_test.go,1726,0.000682632,141484,1837
+3-3-4,service.BenchmarkRequestBookings,2,pkg/service/service_test.go,1900,0.000656196,139906,1838
+3-3-5,service.BenchmarkRequestBookings,2,pkg/service/service_test.go,1855,0.000650781,140721,1839
+3-3-1,service.BenchmarkRequestBookings,1,pkg/service/service_test.go,1963,0.00060764,138621,1834
+3-3-2,service.BenchmarkRequestBookings,1,pkg/service/service_test.go,1939,0.000612839,139142,1836
+3-3-3,service.BenchmarkRequestBookings,1,pkg/service/service_test.go,1831,0.000686197,140490,1837
+3-3-4,service.BenchmarkRequestBookings,1,pkg/service/service_test.go,1969,0.000617936,139341,1838
+3-3-5,service.BenchmarkRequestBookings,1,pkg/service/service_test.go,1940,0.000609964,139835,1839

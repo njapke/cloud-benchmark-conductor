@@ -1,0 +1,5 @@
+benchmark,benchFn,change,minci,maxci
+mb-opt-main-main,service.BenchmarkHandlerGetFlightSeats,0.09383787427199586,-1.7953983974322463,1.75855088857797
+mb-opt-main-main,service.BenchmarkRequestCreateBooking,0.03661215523553807,-4.042713967546929,3.1423099890863337
+mb-opt-main-main,service.BenchmarkRequestDestinations,0.053904630923651276,-1.2513773277949003,1.9620443584091651
+mb-opt-main-main,service.BenchmarkRequestFlights,0.5203398281619975,-3.0819763138416056,0.7704295423839769

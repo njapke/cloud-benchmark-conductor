@@ -1,0 +1,5 @@
+benchmark,benchFn,change,minci,maxci
+mb-opt-main-perf-issue-clean-path,service.BenchmarkHandlerGetFlightSeats,0.12034094455843913,-1.6851886370015112,1.5342205508307227
+mb-opt-main-perf-issue-clean-path,service.BenchmarkRequestCreateBooking,-1.035490605427969,-2.88303984402547,0.795270902441092
+mb-opt-main-perf-issue-clean-path,service.BenchmarkRequestDestinations,0.023673839105975425,-2.193929486041213,0.57007204630386
+mb-opt-main-perf-issue-clean-path,service.BenchmarkRequestFlights,48.43493766363347,47.43530670908955,52.30944827953128

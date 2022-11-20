@@ -1,0 +1,10 @@
+3-3-1,service.BenchmarkHandlerGetFlights,1,pkg/service/service_flights_test.go,1083,0.001146065,466127,2669
+3-3-2,service.BenchmarkHandlerGetFlights,1,pkg/service/service_flights_test.go,1057,0.00115164,475944,2672
+3-3-3,service.BenchmarkHandlerGetFlights,1,pkg/service/service_flights_test.go,1018,0.001173454,491062,2674
+3-3-4,service.BenchmarkHandlerGetFlights,1,pkg/service/service_flights_test.go,1039,0.001168766,482372,2671
+3-3-5,service.BenchmarkHandlerGetFlights,1,pkg/service/service_flights_test.go,972,0.001176139,510440,2676
+3-3-1,service.BenchmarkHandlerGetFlights,2,pkg/service/service_flights_test.go,1036,0.001163133,481133,2662
+3-3-2,service.BenchmarkHandlerGetFlights,2,pkg/service/service_flights_test.go,1028,0.001152977,485503,2667
+3-3-3,service.BenchmarkHandlerGetFlights,2,pkg/service/service_flights_test.go,1005,0.001164997,496168,2674
+3-3-4,service.BenchmarkHandlerGetFlights,2,pkg/service/service_flights_test.go,1069,0.001157045,470268,2666
+3-3-5,service.BenchmarkHandlerGetFlights,2,pkg/service/service_flights_test.go,960,0.001213636,512622,2665

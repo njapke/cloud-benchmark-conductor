@@ -16,25 +16,11 @@ Uses the tools form above to run micro and application benchmarks in the cloud.
 
 ## Running the benchmarks
 ```bash
+# build toolchain
 ./scripts/build.sh
 
-# application benchmark
-./cloud-benchmark-conductor ab --application-v2 main && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor ab --application-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor ab --application-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor ab --application-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
-
-# full microbenchmark suite
-./cloud-benchmark-conductor mb --microbenchmark-v2 main && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
-
-# configure optimized microbenchmark suite
-./cloud-benchmark-conductor mb --microbenchmark-v2 main && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-clean-path && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-request-id && ./cloud-benchmark-conductor cleanup
-./cloud-benchmark-conductor mb --microbenchmark-v2 perf-issue-basic-auth && ./cloud-benchmark-conductor cleanup
+# execute all 12 benchmarks
+./scripts/run-all-benchmarks.sh
 
 # download results
 gsutil cp -r gs://cbc-results/fbs ./results/

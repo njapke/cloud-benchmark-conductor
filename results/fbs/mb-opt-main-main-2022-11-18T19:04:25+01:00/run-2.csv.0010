@@ -1,0 +1,10 @@
+2-3-1,service.BenchmarkRequestDestinations,1,pkg/service/service_test.go,193,0.006139928,846488,13767
+2-3-2,service.BenchmarkRequestDestinations,1,pkg/service/service_test.go,188,0.006489817,851961,13786
+2-3-3,service.BenchmarkRequestDestinations,1,pkg/service/service_test.go,175,0.006459725,855952,13792
+2-3-4,service.BenchmarkRequestDestinations,1,pkg/service/service_test.go,194,0.006405357,859185,13819
+2-3-5,service.BenchmarkRequestDestinations,1,pkg/service/service_test.go,190,0.00626332,859033,13816
+2-3-1,service.BenchmarkRequestDestinations,2,pkg/service/service_test.go,190,0.006272876,848404,13773
+2-3-2,service.BenchmarkRequestDestinations,2,pkg/service/service_test.go,188,0.006421433,849815,13777
+2-3-3,service.BenchmarkRequestDestinations,2,pkg/service/service_test.go,172,0.006634453,859491,13804
+2-3-4,service.BenchmarkRequestDestinations,2,pkg/service/service_test.go,190,0.00630859,859002,13815
+2-3-5,service.BenchmarkRequestDestinations,2,pkg/service/service_test.go,190,0.00623662,858366,13812

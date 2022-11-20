@@ -1,0 +1,10 @@
+2-3-1,database.BenchmarkGetGenerics,2,pkg/database/database_test.go,186441,0.000005538,1057,21
+2-3-2,database.BenchmarkGetGenerics,2,pkg/database/database_test.go,247426,0.000005551,1061,21
+2-3-3,database.BenchmarkGetGenerics,2,pkg/database/database_test.go,208964,0.000005248,1063,21
+2-3-4,database.BenchmarkGetGenerics,2,pkg/database/database_test.go,227044,0.000005207,1066,21
+2-3-5,database.BenchmarkGetGenerics,2,pkg/database/database_test.go,244500,0.000005194,1069,21
+2-3-1,database.BenchmarkGetGenerics,1,pkg/database/database_test.go,222525,0.000005426,1059,21
+2-3-2,database.BenchmarkGetGenerics,1,pkg/database/database_test.go,215254,0.000005591,1061,21
+2-3-3,database.BenchmarkGetGenerics,1,pkg/database/database_test.go,234279,0.000005367,1064,21
+2-3-4,database.BenchmarkGetGenerics,1,pkg/database/database_test.go,233854,0.000005384,1068,21
+2-3-5,database.BenchmarkGetGenerics,1,pkg/database/database_test.go,258762,0.00000525,1070,21

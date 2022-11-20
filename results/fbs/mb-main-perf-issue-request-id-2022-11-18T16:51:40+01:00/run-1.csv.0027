@@ -1,0 +1,10 @@
+1-2-1,service.BenchmarkHandlerCreateBooking,1,pkg/service/service_bookings_test.go,29743,0.000043123,6067,124
+1-2-2,service.BenchmarkHandlerCreateBooking,1,pkg/service/service_bookings_test.go,27224,0.000043375,6129,125
+1-2-3,service.BenchmarkHandlerCreateBooking,1,pkg/service/service_bookings_test.go,28864,0.000043684,6128,125
+1-2-4,service.BenchmarkHandlerCreateBooking,1,pkg/service/service_bookings_test.go,29528,0.000043675,6143,125
+1-2-5,service.BenchmarkHandlerCreateBooking,1,pkg/service/service_bookings_test.go,29322,0.000041688,6166,125
+1-2-1,service.BenchmarkHandlerCreateBooking,2,pkg/service/service_bookings_test.go,29410,0.000043095,6071,124
+1-2-2,service.BenchmarkHandlerCreateBooking,2,pkg/service/service_bookings_test.go,26803,0.000043155,6136,125
+1-2-3,service.BenchmarkHandlerCreateBooking,2,pkg/service/service_bookings_test.go,29383,0.000043801,6121,125
+1-2-4,service.BenchmarkHandlerCreateBooking,2,pkg/service/service_bookings_test.go,29011,0.000041565,6146,125
+1-2-5,service.BenchmarkHandlerCreateBooking,2,pkg/service/service_bookings_test.go,28880,0.000042109,6174,125

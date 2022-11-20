@@ -25,14 +25,14 @@ microbenchmark:
 #  v2: perf-issue-request-id
 #  v2: perf-issue-basic-auth
   outputs:
-#    - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-    - gs://cbc-results/{{.Name}}/mb-opt-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+    - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
+#    - gs://cbc-results/{{.Name}}/mb-opt-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #  excludeFilter: "^chi.*$"
-  functions:
-    - service.BenchmarkRequestFlights
-    - service.BenchmarkHandlerGetFlightSeats
-    - service.BenchmarkRequestDestinations
-    - service.BenchmarkRequestCreateBooking
+#  functions:
+#    - service.BenchmarkRequestFlights
+#    - service.BenchmarkHandlerGetFlightSeats
+#    - service.BenchmarkRequestDestinations
+#    - service.BenchmarkRequestCreateBooking
 
 application:
   name: fbs
