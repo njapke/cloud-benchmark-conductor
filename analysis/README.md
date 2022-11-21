@@ -9,18 +9,12 @@ pip install jupyter numpy pandas seaborn matplotlib
 
 # main
 ```
-[GET /destinations] performance change: 2.23% [1.07 - 3.43] (2.36%) (p=0.000000)
-[GET /flights/${}/seats] performance change: 2.42% [-5.02 - 12.14] (17.16%) (p=0.120893)
-[GET /flights?from=${}] performance change: 2.32% [1.21 - 3.49] (2.28%) (p=0.000000)
-[POST /bookings] performance change: -1.44% [-10.45 - 9.23] (19.69%) (p=0.709460)
+[GET /destinations] performance change: -1.51% [-2.67 - -0.40] (2.27%) (p=0.000000)
+[GET /flights/${id}/seats] performance change: -2.20% [-8.61 - 4.37] (12.98%) (p=0.725289)
+[GET /flights?from=${airport}] performance change: -2.84% [-3.86 - -1.77] (2.10%) (p=0.000000)
+[POST /bookings] performance change: -3.32% [-12.02 - 6.32] (18.34%) (p=0.922314)
 ```
 
-```
-[GET /destinations] performance change: -2.27% [-3.43 - -1.13] (2.30%) (p=0.000000)
-[GET /flights/${}/seats] performance change: -4.94% [-10.91 - 2.54] (13.45%) (p=0.185206)
-[GET /flights?from=${}] performance change: -2.27% [-3.43 - -1.17] (2.26%) (p=0.000000)
-[POST /bookings] performance change: -1.72% [-11.80 - 7.29] (19.10%) (p=0.626582)
-```
 
 # perf-issue-clean-path
 ```
