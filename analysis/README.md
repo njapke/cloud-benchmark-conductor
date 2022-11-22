@@ -43,3 +43,26 @@ pip install jupyter numpy pandas seaborn matplotlib
 
 
 
+database.BenchmarkGet
+database.BenchmarkGetGenerics
+database.BenchmarkPut
+database.BenchmarkRawGet
+database.BenchmarkRawValues
+database.BenchmarkValues
+database.BenchmarkValuesGenerics
+
+service.BenchmarkHandlerCreateBooking
+service.BenchmarkHandlerGetBookings
+service.BenchmarkHandlerGetDestinations
+service.BenchmarkHandlerGetFlight
+service.BenchmarkHandlerGetFlightSeats
+service.BenchmarkHandlerGetFlights
+service.BenchmarkHandlerGetFlightsQuery
+
+service.BenchmarkRequestBookings
+service.BenchmarkRequestCreateBooking
+service.BenchmarkRequestDestinations
+service.BenchmarkRequestFlight
+service.BenchmarkRequestFlights
+service.BenchmarkRequestFlightsQuery
+service.BenchmarkRequestSeats
