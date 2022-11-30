@@ -41,8 +41,8 @@ pip install jupyter numpy pandas seaborn matplotlib
 ```
 
 
-
-
+# Full Microbenchmark Suite
+```
 database.BenchmarkGet
 database.BenchmarkGetGenerics
 database.BenchmarkPut
@@ -66,3 +66,4 @@ service.BenchmarkRequestFlight
 service.BenchmarkRequestFlights
 service.BenchmarkRequestFlightsQuery
 service.BenchmarkRequestSeats
+```

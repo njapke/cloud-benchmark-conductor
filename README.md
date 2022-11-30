@@ -1,4 +1,4 @@
-# master-thesis
+# Master's Thesis
 
 ## Included Tools
 
@@ -50,7 +50,7 @@ gsutil cp -r gs://cbc-results/fbs ./results/
   --profiling
 ```
 
-## Installing & Running gocg
+## Building & Running gocg
 
 **Building gocg**
 ```bash
