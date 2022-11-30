@@ -50,7 +50,14 @@ gsutil cp -r gs://cbc-results/fbs ./results/
   --profiling
 ```
 
-## Running gocg
+## Installing & Running gocg
+
+**Building gocg**
+```bash
+cd ./tools/gocg && ./build.sh && cd -
+```
+
+**Running gocg**
 ```bash
 rm -rf profiling && mkdir profiling
 gsutil cp -r gs://cbc-results/mb-profiles ./profiling
