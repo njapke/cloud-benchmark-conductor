@@ -1,4 +1,7 @@
-# Master's Thesis
+# A Testbed for Evaluating the Detection Capabilities of Microbenchmark Suites Regarding Performance Changes
+
+This repository contains all the code and data used in my master's thesis. The thesis compares different benchmark approaches to detect performance changes in a [testbed application](https://github.com/christophwitzko/flight-booking-service).
+The benchmark results are in the [results](./results) and the [gocg-results](./gocg-results) folders. I used Jupyter notebooks for analysis, located in the [analysis](./analysis) folder.
 
 ## Included Tools
 
@@ -13,6 +16,9 @@ Runs microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).
 
 ### cloud-benchmark-conductor
 Uses the tools form above to run micro and application benchmarks in the cloud.
+
+### gocg
+The gocg tool is used to calculate the optimized microbenchmark suite. It is a fork from [the original implementation by Grambow et al.](https://depositonce.tu-berlin.de/items/a2820b75-a5ca-4a75-a37b-ac489a1fd330) to support Go generics.
 
 ## Running the benchmarks
 ```bash
