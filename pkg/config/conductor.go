@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/cli"
+	"github.com/christophwitzko/masters-thesis/pkg/cli"
 	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

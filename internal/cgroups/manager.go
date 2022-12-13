@@ -30,7 +30,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/internal/cgroups/stats"
+	"github.com/christophwitzko/masters-thesis/internal/cgroups/stats"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"

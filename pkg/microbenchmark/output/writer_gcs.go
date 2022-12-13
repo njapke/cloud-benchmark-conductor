@@ -3,7 +3,7 @@ package output
 import (
 	"io"
 
-	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud/storage"
 	"github.com/hashicorp/go-multierror"
 )
 

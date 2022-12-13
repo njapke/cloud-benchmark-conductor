@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 	"github.com/google/pprof/driver"
 )
 

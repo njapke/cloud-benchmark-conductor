@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/internal/cgroups/stats"
+	"github.com/christophwitzko/masters-thesis/internal/cgroups/stats"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runtime-spec/specs-go"

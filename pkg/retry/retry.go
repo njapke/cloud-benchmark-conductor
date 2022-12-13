@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 )
 
 func HandleSilently(attempt int, err error) {}

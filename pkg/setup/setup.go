@@ -5,8 +5,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/christophwitzko/master-thesis/pkg/git"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/git"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 )
 
 func SourcePaths(log *logger.Logger, checkoutDir, gitRepository, sourcePathOrRefV1, sourcePathOrRefV2 string) (string, string, error) {

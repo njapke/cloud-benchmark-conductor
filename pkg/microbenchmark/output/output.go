@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
+	"github.com/christophwitzko/masters-thesis/pkg/microbenchmark"
 )
 
 type NewChunkFunc func(lastResult, newResult *microbenchmark.Result) bool

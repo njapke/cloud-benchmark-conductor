@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/christophwitzko/master-thesis/pkg/gcloud"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
-	"github.com/christophwitzko/master-thesis/pkg/retry"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/retry"
 )
 
 type actionInstallGo struct {

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 	"golang.org/x/perf/benchfmt"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 )

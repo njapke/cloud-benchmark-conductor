@@ -1,4 +1,4 @@
-module github.com/christophwitzko/master-thesis
+module github.com/christophwitzko/masters-thesis
 
 go 1.19
 

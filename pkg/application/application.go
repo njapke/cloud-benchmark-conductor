@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/christophwitzko/master-thesis/pkg/logger"
-	"github.com/christophwitzko/master-thesis/pkg/merror"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/merror"
 )
 
 type PidCallbackFunc func(pid int) error

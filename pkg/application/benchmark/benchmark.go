@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
-	"github.com/christophwitzko/master-thesis/pkg/retry"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud/storage"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/retry"
 )
 
 type Config struct {

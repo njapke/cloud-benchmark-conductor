@@ -11,7 +11,7 @@ import (
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	resourcemanagerpb "google.golang.org/genproto/googleapis/cloud/resourcemanager/v3"
 
-	"github.com/christophwitzko/master-thesis/pkg/config"
+	"github.com/christophwitzko/masters-thesis/pkg/config"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/googleapi"

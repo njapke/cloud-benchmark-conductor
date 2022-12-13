@@ -8,14 +8,14 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/cli"
-	"github.com/christophwitzko/master-thesis/pkg/gcloud/storage"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
-	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
-	"github.com/christophwitzko/master-thesis/pkg/microbenchmark/output"
-	"github.com/christophwitzko/master-thesis/pkg/profile"
-	"github.com/christophwitzko/master-thesis/pkg/retry"
-	"github.com/christophwitzko/master-thesis/pkg/setup"
+	"github.com/christophwitzko/masters-thesis/pkg/cli"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud/storage"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/microbenchmark"
+	"github.com/christophwitzko/masters-thesis/pkg/microbenchmark/output"
+	"github.com/christophwitzko/masters-thesis/pkg/profile"
+	"github.com/christophwitzko/masters-thesis/pkg/retry"
+	"github.com/christophwitzko/masters-thesis/pkg/setup"
 	"github.com/spf13/cobra"
 )
 

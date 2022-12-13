@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/bramvdbogaerde/go-scp"
-	"github.com/christophwitzko/master-thesis/pkg/merror"
+	"github.com/christophwitzko/masters-thesis/pkg/merror"
 	"golang.org/x/crypto/ssh"
 )
 

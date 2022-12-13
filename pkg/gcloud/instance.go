@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/christophwitzko/master-thesis/pkg/config"
-	"github.com/christophwitzko/master-thesis/pkg/merror"
-	"github.com/christophwitzko/master-thesis/pkg/netutil"
-	"github.com/christophwitzko/master-thesis/pkg/retry"
+	"github.com/christophwitzko/masters-thesis/pkg/config"
+	"github.com/christophwitzko/masters-thesis/pkg/merror"
+	"github.com/christophwitzko/masters-thesis/pkg/netutil"
+	"github.com/christophwitzko/masters-thesis/pkg/retry"
 	"golang.org/x/crypto/ssh"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )

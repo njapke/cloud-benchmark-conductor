@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/christophwitzko/master-thesis/pkg/cli"
-	"github.com/christophwitzko/master-thesis/pkg/config"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/cli"
+	"github.com/christophwitzko/masters-thesis/pkg/config"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

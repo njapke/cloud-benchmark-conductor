@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 
-	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
+	"github.com/christophwitzko/masters-thesis/pkg/microbenchmark"
 )
 
 type csvResultEncoder struct {

@@ -8,11 +8,11 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/christophwitzko/master-thesis/pkg/assets"
-	"github.com/christophwitzko/master-thesis/pkg/config"
-	"github.com/christophwitzko/master-thesis/pkg/gcloud"
-	"github.com/christophwitzko/master-thesis/pkg/gcloud/actions"
-	"github.com/christophwitzko/master-thesis/pkg/logger"
+	"github.com/christophwitzko/masters-thesis/pkg/assets"
+	"github.com/christophwitzko/masters-thesis/pkg/config"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud"
+	"github.com/christophwitzko/masters-thesis/pkg/gcloud/actions"
+	"github.com/christophwitzko/masters-thesis/pkg/logger"
 )
 
 type mbTmplData struct {

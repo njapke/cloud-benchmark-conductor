@@ -3,7 +3,7 @@ package cgroups
 import (
 	"fmt"
 
-	"github.com/christophwitzko/master-thesis/internal/cgroups"
+	"github.com/christophwitzko/masters-thesis/internal/cgroups"
 )
 
 var (

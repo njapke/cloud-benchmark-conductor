@@ -3,7 +3,7 @@ package output
 import (
 	"fmt"
 
-	"github.com/christophwitzko/master-thesis/pkg/microbenchmark"
+	"github.com/christophwitzko/masters-thesis/pkg/microbenchmark"
 )
 
 type ResultEncoder interface {
