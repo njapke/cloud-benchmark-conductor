@@ -1,24 +1,24 @@
 # A Testbed for Evaluating the Detection Capabilities of Microbenchmark Suites Regarding Performance Changes
 
-This repository contains all the code and data used in my master's thesis. The thesis compares different benchmark approaches to detect performance changes in a [testbed application](https://github.com/christophwitzko/flight-booking-service).
-The benchmark results are in the [results](./results) and the [gocg-results](./gocg-results) folders. I used Jupyter notebooks for analysis, located in the [analysis](./analysis) folder.
+This repository contains all the code and data used in my master's thesis. The thesis compares different benchmark approaches to detect artificial performance issues in a [testbed application](https://github.com/christophwitzko/flight-booking-service).
+The benchmark results are in the [results](./results) and the [gocg-results](./gocg-results) folders. I used different Jupyter notebooks for the benchmark analysis, located in the [analysis](./analysis) folder.
 
 ## Included Tools
 
-### application-benchmark-runner
+### [application-benchmark-runner](./cmd/application-benchmark-runner/)
 Runs artillery/k6 benchmarks.
 
-### application-runner
+### [application-runner](./cmd/application-runner/)
 Runs two different versions of an application simultaneous.
 
-### microbenchmark-runner
+### [microbenchmark-runner](./cmd/microbenchmark-runner/)
 Runs microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).
 
-### cloud-benchmark-conductor
+### [cloud-benchmark-conductor](./cmd/cloud-benchmark-conductor/)
 Uses the tools form above to run micro and application benchmarks in the cloud.
 
-### gocg
-The gocg tool is used to calculate the optimized microbenchmark suite. It is a fork from [the original implementation by Grambow et al.](https://depositonce.tu-berlin.de/items/a2820b75-a5ca-4a75-a37b-ac489a1fd330) to support Go generics.
+### [gocg](./tools/gocg/)
+The gocg tool is used to calculate the optimized microbenchmark suite. It is a fork of [the original implementation by Grambow et al.](https://depositonce.tu-berlin.de/items/a2820b75-a5ca-4a75-a37b-ac489a1fd330) to support Go generics.
 
 ## Running the benchmarks
 ```bash
