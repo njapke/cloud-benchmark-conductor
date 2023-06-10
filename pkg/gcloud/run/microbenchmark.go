@@ -60,13 +60,15 @@ func getMbRunnerCmd(timeout time.Duration, mbConf *config.ConductorMicrobenchmar
 			cmd = append(cmd, fmt.Sprintf("--function='%s'", function))
 		}
 	}
-
 	for _, output := range mbConf.Outputs {
 		finalOutput, err := applyMbOutputTemplate(mbConf, runIndex, output)
 		if err != nil {
 			return "", err
 		}
 		cmd = append(cmd, fmt.Sprintf("--output='%s'", finalOutput))
+	}
+	for _, env := range mbConf.Env {
+		cmd = append(cmd, fmt.Sprintf("--env='%s'", env))
 	}
 	return strings.Join(cmd, " "), nil
 }

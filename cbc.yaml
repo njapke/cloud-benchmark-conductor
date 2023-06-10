@@ -16,7 +16,7 @@ timeout: 90m
 
 microbenchmark:
   name: fbs
-  repository: https://github.com/christophwitzko/flight-booking-service.git
+  repository: https://github.com/njapke/flight-booking-service.git
 #  runs: 1
 #  suiteRuns: 1
   v1: main
@@ -24,10 +24,14 @@ microbenchmark:
 #  v2: perf-issue-clean-path
 #  v2: perf-issue-request-id
 #  v2: perf-issue-basic-auth
+  env:
+    # setup SEVERITY here
+    # or when executing cbc: ./cloud-benchmark-conductor mb --microbenchmark-v2 main --microbenchmark-env SEVERITY=100
+    - SEVERITY=100
   outputs:
     - gs://cbc-results/{{.Name}}/mb-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
 #    - gs://cbc-results/{{.Name}}/mb-opt-{{.V1}}-{{.V2}}-{{.Timestamp}}/run-{{.RunIndex}}.csv?chunked=true&no-csv-header=true
-#  excludeFilter: "^chi.*$"
+  excludeFilter: "^chi.*$"
 #  functions:
 #    - service.BenchmarkRequestFlights
 #    - service.BenchmarkHandlerGetFlightSeats

@@ -24,6 +24,7 @@ type ConductorMicrobenchmarkConfig struct {
 	IncludeFilter string `yaml:"includeFilter"`
 	Functions     []string
 	Outputs       []string `yaml:"outputs"`
+	Env           []string
 }
 
 func (c *ConductorMicrobenchmarkConfig) Validate() error {
@@ -174,6 +175,7 @@ func NewConductorConfig(cmd *cobra.Command) (*ConductorConfig, error) {
 			IncludeFilter: viper.GetString("microbenchmark.includeFilter"),
 			Functions:     viper.GetStringSlice("microbenchmark.functions"),
 			Outputs:       viper.GetStringSlice("microbenchmark.outputs"),
+			Env:           viper.GetStringSlice("microbenchmark.env"),
 		},
 		Application: &ConductorApplicationConfig{
 			Name:         viper.GetString("application.name"),
@@ -257,6 +259,7 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cmd.PersistentFlags().Bool("application-limit-cpu", false, "limit application cpu")
 	cmd.PersistentFlags().String("application-benchmark-tool", "artillery", "application benchmark tool")
 	cmd.PersistentFlags().StringArray("application-benchmark-env", []string{}, "application benchmark environment variables")
+	cmd.PersistentFlags().StringArray("microbenchmark-env", []string{}, "microbenchmark environment variables")
 
 	cli.Must(viper.BindPFlag("project", cmd.PersistentFlags().Lookup("project")))
 	cli.Must(viper.BindPFlag("region", cmd.PersistentFlags().Lookup("region")))
@@ -291,4 +294,5 @@ func ConductorSetupFlagsAndViper(cmd *cobra.Command) {
 	cli.Must(viper.BindPFlag("application.limitCPU", cmd.PersistentFlags().Lookup("application-limit-cpu")))
 	cli.Must(viper.BindPFlag("application.benchmark.tool", cmd.PersistentFlags().Lookup("application-benchmark-tool")))
 	cli.Must(viper.BindPFlag("application.benchmark.env", cmd.PersistentFlags().Lookup("application-benchmark-env")))
+	cli.Must(viper.BindPFlag("microbenchmark.env", cmd.PersistentFlags().Lookup("microbenchmark-env")))
 }
