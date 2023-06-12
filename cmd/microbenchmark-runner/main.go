@@ -54,6 +54,7 @@ func main() {
 	rootCmd.Flags().String("profiling-local-output", "./profiles", "output directory for profiling")
 	rootCmd.Flags().String("profiling-gcs-output", "", "if set uploads the profiles to google cloud storage")
 	rootCmd.Flags().Duration("timeout", 60*time.Minute, "timeout for the benchmark execution")
+	rootCmd.Flags().StringArray("env", []string{}, "additional environment variables to set")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -93,7 +94,7 @@ func getVersionedFunctions(sourcePathV1, sourcePathV2, includeRegexp, excludeReg
 	}), nil
 }
 
-func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, outputPaths []string, defaultOutputFormat string, suiteRuns, runIndex int) error {
+func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, outputPaths []string, defaultOutputFormat string, suiteRuns, runIndex int, env []string) error {
 	resultWriter, err := output.New(ctx, outputPaths, defaultOutputFormat)
 	if err != nil {
 		return fmt.Errorf("failed to open output: %w", err)
@@ -103,7 +104,7 @@ func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFuncti
 	log.Infof("run index: %d", runIndex)
 	for s := 1; s <= suiteRuns; s++ {
 		log.Infof("suite run: %d/%d", s, suiteRuns)
-		err := microbenchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s)
+		err := microbenchmark.RunSuite(ctx, log, resultWriter, versionedFunctions, runIndex, s, env)
 		if err != nil {
 			return err
 		}
@@ -112,7 +113,7 @@ func runMicrobenchmarks(ctx context.Context, log *logger.Logger, versionedFuncti
 	return nil
 }
 
-func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, profilingLocalOutput, profilingGCSOutput string) error {
+func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions microbenchmark.VersionedFunctions, profilingLocalOutput, profilingGCSOutput string, env []string) error {
 	log.Warn("profiling only functions from version 1")
 	err := setup.CreateDirectory(profilingLocalOutput)
 	if err != nil {
@@ -127,7 +128,7 @@ func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions mi
 	}
 	logPrefix := "|pprof|"
 	for _, vf := range versionedFunctions {
-		profileFile, err := microbenchmark.RunProfile(ctx, log, vf.V1, profilingLocalOutput)
+		profileFile, err := microbenchmark.RunProfile(ctx, log, vf.V1, profilingLocalOutput, env)
 		profileFileName := filepath.Base(profileFile)
 		if profilingGCSOutput != "" {
 			log.Infof("%s uploading pprof profile to gcs: %s", logPrefix, profileFileName)
@@ -161,7 +162,7 @@ func runProfiling(ctx context.Context, log *logger.Logger, versionedFunctions mi
 	return nil
 }
 
-func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
+func rootRun(log *logger.Logger, cmd *cobra.Command, _ []string) error {
 	sourcePathOrRefV1 := cli.MustGetString(cmd, "v1")
 	sourcePathOrRefV2 := cli.MustGetString(cmd, "v2")
 	gitRepository := cli.MustGetString(cmd, "git-repository")
@@ -178,6 +179,7 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	profilingLocalOutput := cli.MustGetString(cmd, "profiling-local-output")
 	profilingGCSOutput := cli.MustGetString(cmd, "profiling-gcs-output")
 	timeout := cli.MustGetDuration(cmd, "timeout")
+	envVars := cli.MustGetStringArray(cmd, "env")
 
 	if !outputFormatCSV && !outputFormatJSON {
 		return fmt.Errorf("either --json or --csv must be set to true")
@@ -213,8 +215,8 @@ func rootRun(log *logger.Logger, cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	if shouldRunProfiling {
-		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profilingLocalOutput), profilingGCSOutput)
+		return runProfiling(ctx, log, versionedFunctions, filepath.Join(sourcePathV1, profilingLocalOutput), profilingGCSOutput, envVars)
 	}
 
-	return runMicrobenchmarks(ctx, log, versionedFunctions, outputPaths, defaultOutputFormat, suiteRuns, runIndex)
+	return runMicrobenchmarks(ctx, log, versionedFunctions, outputPaths, defaultOutputFormat, suiteRuns, runIndex, envVars)
 }

@@ -93,7 +93,7 @@ func (r Results) Records() [][]string {
 	return res
 }
 
-func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, f Function, version, run, suite int) error {
+func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, f Function, version, run, suite int, env []string) error {
 	args := []string{
 		"test",
 		"-run=^$",
@@ -108,7 +108,8 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = f.RootDirectory
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+	cmd.Env = append([]string{"CGO_ENABLED=0"}, env...)
+	cmd.Env = append(cmd.Env, os.Environ()...)
 	pipeRead, pipeWrite := io.Pipe()
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = pipeWrite
@@ -149,13 +150,10 @@ func RunFunction(ctx context.Context, log *logger.Logger, resultWriter ResultWri
 	if err := bReader.Err(); err != nil {
 		return err
 	}
-	if err := <-errCh; err != nil {
-		return err
-	}
-	return nil
+	return <-errCh
 }
 
-func RunProfile(ctx context.Context, log *logger.Logger, f Function, profileOutputDir string) (string, error) {
+func RunProfile(ctx context.Context, log *logger.Logger, f Function, profileOutputDir string, env []string) (string, error) {
 	profileOutputFile := filepath.Join(profileOutputDir, fmt.Sprintf("%s.out", f.String()))
 	args := []string{
 		"test",
@@ -171,7 +169,8 @@ func RunProfile(ctx context.Context, log *logger.Logger, f Function, profileOutp
 
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = f.RootDirectory
-	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+	cmd.Env = append([]string{"CGO_ENABLED=0"}, env...)
+	cmd.Env = append(cmd.Env, os.Environ()...)
 	logPipeRead, logPipeWrite := io.Pipe()
 	cmd.Stdout = logPipeWrite
 	cmd.Stderr = logPipeWrite
@@ -185,7 +184,7 @@ func RunProfile(ctx context.Context, log *logger.Logger, f Function, profileOutp
 	return profileOutputFile, nil
 }
 
-func RunVersionedFunction(ctx context.Context, rng *rand.Rand, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int) error {
+func RunVersionedFunction(ctx context.Context, rng *rand.Rand, log *logger.Logger, resultWriter ResultWriter, vFunction VersionedFunction, run, suite int, env []string) error {
 	a, b := vFunction.V1, vFunction.V2
 	aVersion, bVersion := 1, 2
 
@@ -196,19 +195,15 @@ func RunVersionedFunction(ctx context.Context, rng *rand.Rand, log *logger.Logge
 	}
 
 	log.Infof("  |--> running[v%d]: %s", aVersion, a.FileName)
-	if err := RunFunction(ctx, log, resultWriter, a, aVersion, run, suite); err != nil {
+	if err := RunFunction(ctx, log, resultWriter, a, aVersion, run, suite, env); err != nil {
 		return err
 	}
 
 	log.Infof("  |--> running[v%d]: %s", bVersion, b.FileName)
-	if err := RunFunction(ctx, log, resultWriter, b, bVersion, run, suite); err != nil {
-		return err
-	}
-
-	return nil
+	return RunFunction(ctx, log, resultWriter, b, bVersion, run, suite, env)
 }
 
-func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, fns VersionedFunctions, run, suite int) error {
+func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter, fns VersionedFunctions, run, suite int, env []string) error {
 	newFns := make(VersionedFunctions, len(fns))
 	copy(newFns, fns)
 
@@ -222,7 +217,7 @@ func RunSuite(ctx context.Context, log *logger.Logger, resultWriter ResultWriter
 	for i, function := range newFns {
 		fnPercentage := float64(i+1) * 100 / lenFns
 		log.Infof("--| R%d-S%d (%.2f%%) benchmarking: %s", run, suite, fnPercentage, function.String())
-		err := RunVersionedFunction(ctx, rng, log, resultWriter, function, run, suite)
+		err := RunVersionedFunction(ctx, rng, log, resultWriter, function, run, suite, env)
 		if err != nil {
 			return err
 		}
