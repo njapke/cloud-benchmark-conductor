@@ -62,7 +62,7 @@ func NewService(conf *config.ConductorConfig) (Service, error) {
 	defer projectsClient.Close()
 	// resolve project id to project number
 	projectNumber, err := resolveProjectNumber(projectsClient.SearchProjects(ctx,
-		&resourcemanagerpb.SearchProjectsRequest{Query: "name:" + conf.Project},
+		&resourcemanagerpb.SearchProjectsRequest{Query: "projectId:" + conf.Project},
 	))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project %s: %w", conf.Project, err)
