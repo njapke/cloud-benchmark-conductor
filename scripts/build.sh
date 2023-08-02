@@ -8,7 +8,7 @@ k6AssetPath="./pkg/assets/k6_linux_amd64"
 
 [[ -f "$k6AssetPath" ]] || {
     echo "downloading k6..."
-    curl -SL "$k6DownloadURL" | tar xvf - --strip-components=1 "k6-v${k6Version}-linux-amd64/k6"
+    curl -SL "$k6DownloadURL" | tar xvzf - --strip-components=1 "k6-v${k6Version}-linux-amd64/k6"
     mv ./k6 "$k6AssetPath"
 }
 

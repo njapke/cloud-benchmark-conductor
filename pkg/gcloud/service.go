@@ -1,15 +1,14 @@
 package gcloud
 
 import (
+	compute "cloud.google.com/go/compute/apiv1"
+	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-
-	compute "cloud.google.com/go/compute/apiv1"
-	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	resourcemanagerpb "google.golang.org/genproto/googleapis/cloud/resourcemanager/v3"
+	"strings"
 
 	"github.com/christophwitzko/masters-thesis/pkg/config"
 	"github.com/hashicorp/go-multierror"

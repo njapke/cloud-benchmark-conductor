@@ -1,5 +1,5 @@
 # cloud benchmark conductor config
-project: mt-benchmarks
+project: masterarbeit-353409
 region: europe-west1
 zone: europe-west1-b
 defaultInstanceType: n2-highcpu-4
@@ -17,8 +17,8 @@ timeout: 90m
 microbenchmark:
   name: fbs
   repository: https://github.com/njapke/flight-booking-service.git
-#  runs: 1
-#  suiteRuns: 1
+  runs: 1
+  suiteRuns: 1
   v1: main
   v2: main
 #  v2: perf-issue-clean-path

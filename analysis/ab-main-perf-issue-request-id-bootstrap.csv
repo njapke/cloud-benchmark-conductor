@@ -1,5 +1,0 @@
-benchmark,endpoint,change,minci,maxci
-ab-main-perf-issue-request-id,GET /destinations,354.76869607119676,349.9986445667969,359.72339118227217
-ab-main-perf-issue-request-id,GET /flights/${id}/seats,509.21551369764126,468.4138788582013,556.4721174583516
-ab-main-perf-issue-request-id,GET /flights?from=${airport},295.0663697832294,290.03131079978846,300.1693501921213
-ab-main-perf-issue-request-id,POST /bookings,771.9198366714545,698.9752398433619,845.3068036582561
