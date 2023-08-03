@@ -1,7 +1,26 @@
-# A Testbed for Evaluating the Detection Capabilities of Microbenchmark Suites Regarding Performance Changes
+# The Early Microbenchmark Catches the Bug -- Studying Performance Issues Using Micro- and Application Benchmarks
 
-This repository contains all the code and data used in my master's thesis. The thesis compares different benchmark approaches to detect artificial performance issues in a [testbed application](https://github.com/christophwitzko/flight-booking-service).
-The benchmark results are in the [results](./results) and the [gocg-results](./gocg-results) folders. I used different Jupyter notebooks for the benchmark analysis, located in the [analysis](./analysis) folder.
+This repository contains the code and results described in our paper on performance issue detection using application benchmarks and microbenchmarks. It includes tools to automate application benchmarks and microbenchmarks of our [testbed application](https://github.com/njapke/flight-booking-service). Experiment configurations and result data can be found in [experiment_results](./experiment_results). Analysis scripts are contained in [analysis_scripts](./analysis_scripts).
+
+## Citation
+
+If you use this software in a publication, please cite it as:
+
+### Text
+
+N. Japke, C. Witzko, M. Grambow and D. Bermbach, **The Early Microbenchmark Catches the Bug -- Studying Performance Issues Using Micro- and Application Benchmarks**, 2023.
+
+### BibTeX
+
+```bibtex
+@article{japke2023studyingperformance,
+    title = "The Early Microbenchmark Catches the Bug -- Studying Performance Issues Using Micro- and Application Benchmarks",
+    author = "Japke, Nils and Witzko, Christoph and Grambow, Martin and Bermbach, David",
+    year = 2023
+}
+```
+
+For a full list of publications, please see [our website](https://www.tu.berlin/en/mcc/research/publications).
 
 ## Included Tools
 
@@ -18,7 +37,7 @@ Runs microbenchmarks using RMIT (Randomized Multiple Interleaved Trials).
 Uses the tools form above to run micro and application benchmarks in the cloud.
 
 ### [gocg](./tools/gocg/)
-The gocg tool is used to calculate the optimized microbenchmark suite. It is a fork of [the original implementation by Grambow et al.](https://depositonce.tu-berlin.de/items/a2820b75-a5ca-4a75-a37b-ac489a1fd330) to support Go generics.
+Not used in our paper. A description of this tool can be found in a separate readme file.
 
 ## Running the benchmarks
 ```bash
@@ -54,22 +73,4 @@ gsutil cp -r gs://cbc-results/fbs ./results/
   --exclude-filter="^chi.*$" \
   --profiling-gcs-output gs://cbc-results/mb-profiles \
   --profiling
-```
-
-## Building & Running gocg
-
-**Building gocg**
-```bash
-cd ./tools/gocg && ./build.sh && cd -
-```
-
-**Running gocg**
-```bash
-rm -rf profiling && mkdir profiling
-gsutil cp -r gs://cbc-results/mb-profiles ./profiling
-gsutil cp -r gs://cbc-results/ab-profiles ./profiling
-
-./scripts/fix-dot-files.sh ./profiling
-./scripts/run-gocg.sh
-open ./gocg-results/ab-profiles_struct_node_overlap_mins-GreedySystem.csv
 ```
